@@ -1,25 +1,75 @@
-import { AppBar, Toolbar, Typography } from '@mui/material';
+import { AppBar, Toolbar, Typography, Button, Box } from '@mui/material';
+import { appBarHeight } from '../constants';
 
-const appBarHeight = 80;
+interface HeaderProps {
+    onLeaveSession?: () => void;
+    showLeaveButton?: boolean;
+}
 
-export default function Header() {
+export default function Header({ onLeaveSession, showLeaveButton }: HeaderProps) {
     return (
         <AppBar
             position="static"
-            sx={{ alignItems: 'center', bgcolor: '#fff', boxShadow: 1 }}
+            sx={{ bgcolor: '#000000', boxShadow: 1 }}
             elevation={1}
         >
-            <Toolbar sx={{ justifyContent: 'center', minHeight: appBarHeight }}>
-                <Typography 
-                    variant="h3" 
-                    component="div" 
-                    sx={{
-                        color: '#bc0f0f' ,
-                        fontFamily: "'UnifrakturCook', cursive"
-                    }}
-                >
-          Encounter Engine
-                </Typography>
+            <Toolbar
+                sx={{
+                    minHeight: appBarHeight,
+                    display: 'flex',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                }}
+            >
+                {/* Left: Leave Button */}
+                <Box sx={{ flex: 1, display: 'flex', alignItems: 'center' }}>
+                    {showLeaveButton && (
+                        <Button
+                            variant="contained"
+                            onClick={onLeaveSession}
+                            sx={{
+                                bgcolor: '#bb1e1eff',
+                                color: '#fff',
+                                '&:hover': { bgcolor: '#7a1010' },
+                                fontWeight: 600,
+                                textTransform: 'none'
+                            }}
+                        >
+                            Leave game
+                        </Button>
+                    )}
+                </Box>
+                {/* Center: Title */}
+                <Box sx={{ flex: 2, display: 'flex', justifyContent: 'center' }}>
+                    <Typography
+                        variant="h3"
+                        component="div"
+                        sx={{
+                            color: '#bc0f0f',
+                            fontFamily: "'UnifrakturCook', cursive",
+                            letterSpacing: 2,
+                            textAlign: 'center',
+                        }}
+                    >
+                        DnD Encounter Engine
+                    </Typography>
+                </Box>
+                {/* Right: Empty for spacing */}
+                <Box sx={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
+                    <Button
+                            variant="contained"
+                            sx={{
+                                bgcolor: '#bb1e1eff',
+                                color: '#fff',
+                                '&:hover': { bgcolor: '#7a1010' },
+                                fontWeight: 600,
+                                textTransform: 'none'
+                            }}
+                        >
+                            Sign in
+                        </Button>
+                </Box>
             </Toolbar>
         </AppBar>
     );

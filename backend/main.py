@@ -2,6 +2,8 @@ import socketio
 from fastapi import FastAPI
 import uvicorn
 import uuid
+from fastapi.middleware.cors import CORSMiddleware
+import httpx
 
 sio = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins='*')
 app = FastAPI()
@@ -9,6 +11,35 @@ socket_app = socketio.ASGIApp(sio, other_asgi_app=app)
 
 sessions = {}  # session_id: {"grid": [...], "users": set()}
 GRID_SIZE = 16
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.get("/monsters")
+async def get_monsters():
+    async with httpx.AsyncClient() as client:
+        # Get the list of monsters
+        resp = await client.get("https://www.dnd5eapi.co/api/2014/monsters")
+        data = resp.json()
+        results = data.get("results", [])
+        # Limit for demo, remove or adjust as needed
+        results = results[:20]
+        monsters = []
+        for monster in results:
+            detail_url = f"https://www.dnd5eapi.co{monster['url']}"
+            detail_resp = await client.get(detail_url)
+            detail = detail_resp.json()
+            monsters.append({
+                "index": detail.get("index"),
+                "name": detail.get("name"),
+                "image": detail.get("image", None)
+            })
+        return monsters
 
 @sio.event
 async def connect(sid, environ):

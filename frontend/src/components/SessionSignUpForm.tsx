@@ -2,10 +2,10 @@ import React from 'react';
 import { Box, Divider, Typography, Button, TextField, Paper } from '@mui/material';
 
 interface SessionSignUpFormProps {
-  inputSessionId: string;
-  setInputSessionId: (id: string) => void;
-  handleJoinSession: (e: React.FormEvent) => void;
-  handleCreateSession: () => void;
+    inputSessionId: string;
+    setInputSessionId: (id: string) => void;
+    handleJoinSession: (e: React.FormEvent) => void;
+    handleCreateSession: () => void;
 }
 
 export default function SessionSignUpForm({
@@ -19,14 +19,22 @@ export default function SessionSignUpForm({
             display="flex"
             justifyContent="center"
             alignItems="center"
-            height={`calc(100vh - 80px)`}
-            p={4}
+            width="100%"
         >
-            <Paper elevation={3} sx={{ p: 4, minWidth: 600, display: 'flex' }}>
+            <Paper
+                elevation={6}
+                sx={{
+                    p: 4,
+                    minWidth: 600,
+                    display: 'flex',
+                    bgcolor: '#272020ff',
+                    color: '#fff',
+                }}
+            >
                 {/* Join Session */}
                 <Box flex={1} display="flex" flexDirection="column" alignItems="center" pr={3}>
-                    <Typography variant="h5" mb={2}>
-            Join a Session
+                    <Typography variant="h5" mb={2} color="#fff">
+                        Join a Session
                     </Typography>
                     <form onSubmit={handleJoinSession} style={{ width: '100%' }}>
                         <TextField
@@ -35,28 +43,51 @@ export default function SessionSignUpForm({
                             fullWidth
                             value={inputSessionId}
                             onChange={e => setInputSessionId(e.target.value)}
-                            sx={{ mb: 2 }}
+                            sx={{
+                                mb: 2,
+                                input: { color: '#fff' },
+                                label: { color: '#fff' },
+                                '& .MuiOutlinedInput-root': {
+                                    '& fieldset': { borderColor: '#fff' },
+                                    '&:hover fieldset': { borderColor: '#fff' },
+                                    '&.Mui-focused fieldset': { borderColor: '#fff' },
+                                },
+                            }}
                         />
-                        <Button type="submit" variant="contained" color="primary" fullWidth>
-              Join
+                        <Button
+                            type="submit"
+                            variant="contained"
+                            fullWidth
+                            sx={{
+                                bgcolor: '#bb1e1eff',
+                                color: '#fff',
+                                '&:hover': { bgcolor: '#7a1010' },
+                            }}
+                        >
+                            Join
                         </Button>
                     </form>
                 </Box>
                 {/* Divider */}
-                <Divider orientation="vertical" flexItem sx={{ mx: 3 }} />
+                <Divider orientation="vertical" flexItem sx={{ mx: 3, borderColor: '#fff' }} />
                 {/* Create Session */}
                 <Box flex={1} display="flex" flexDirection="column" alignItems="center" pl={3}>
-                    <Typography variant="h5" mb={2}>
-            Create a New Game
+                    <Typography variant="h5" mb={2} color="#fff">
+                        Create a New Game
                     </Typography>
                     <Button
                         variant="contained"
-                        color="secondary"
                         size="large"
                         onClick={handleCreateSession}
-                        sx={{ mt: 2, width: '100%' }}
+                        sx={{
+                            mt: 2,
+                            width: '100%',
+                            bgcolor: '#bb1e1eff',
+                            color: '#fff',
+                            '&:hover': { bgcolor: '#7a1010' },
+                        }}
                     >
-            Create Session
+                        Create Session
                     </Button>
                 </Box>
             </Paper>
