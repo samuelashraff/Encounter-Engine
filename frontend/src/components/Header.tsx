@@ -1,5 +1,5 @@
 import { AppBar, Toolbar, Typography, Button, Box } from '@mui/material';
-import { appBarHeight } from '../constants';
+import { APP_BAR_HEIGHT } from '../constants';
 
 interface HeaderProps {
     onLeaveSession?: () => void;
@@ -15,7 +15,7 @@ export default function Header({ onLeaveSession, showLeaveButton }: HeaderProps)
         >
             <Toolbar
                 sx={{
-                    minHeight: appBarHeight,
+                    minHeight: APP_BAR_HEIGHT,
                     display: 'flex',
                     flexDirection: 'row',
                     alignItems: 'center',
@@ -74,5 +74,3 @@ export default function Header({ onLeaveSession, showLeaveButton }: HeaderProps)
         </AppBar>
     );
 }
-
-export { appBarHeight };

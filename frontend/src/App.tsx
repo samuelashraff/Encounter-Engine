@@ -1,13 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Header from './components/Header';
-import CombatGrid from './components/CombatGrid';
-import { Box, Modal, Backdrop, Button } from '@mui/material';
+import BoardArea from './components/BoardArea';
+import { Box, Modal, Backdrop } from '@mui/material';
 import SessionSignUpForm from './components/SessionSignUpForm';
 import { useSocket } from './context/SocketContext';
 import type { AlertColor } from '@mui/material/Alert';
 import SessionSnackbar from './components/SessionSnackbar';
 import type { Monster } from './components/MonsterDropdown';
-import MonsterDropdown from './components/MonsterDropdown';
+import MonsterCursorOverlay from './components/MonsterCursorOverlay';
+
+
+export type GridCell = {
+    occupied: boolean;
+    monster?: Monster;
+}
 
 function App() {
     const { socket } = useSocket();
@@ -16,7 +22,7 @@ function App() {
     const [sessionJoined, setSessionJoined] = useState(false);
     const [sessionId, setSessionId] = useState('');
     const [inputSessionId, setInputSessionId] = useState('');
-    const [grid, setGrid] = useState<boolean[]>([]);
+    const [grid, setGrid] = useState<GridCell[]>([]);
 
     // SnackBar states
     const [snackbarOpen, setSnackbarOpen] = useState(false);
@@ -26,12 +32,13 @@ function App() {
     // Monster placement logic
     const [monsterToPlace, setMonsterToPlace] = useState<Monster | null>(null);
     const [placingMonster, setPlacingMonster] = useState(false);
-    const [cursorPos, setCursorPos] = useState<{x: number, y: number}>({x: 0, y: 0});
+    const cursorPosRef = useRef({ x: 0, y: 0 });
+    const [, setCursorTick] = useState(0); // dummy state to force re-render
 
     // Compute the grid to show: real grid if joined, empty otherwise
     const gridToShow = sessionJoined
         ? grid
-        : Array(16 * 16).fill(false); // 16x16 empty grid
+        : Array(16 * 16).fill(null).map(() => ({ occupied: false })); // 16x16 empty grid
 
 
     // UseEffects
@@ -83,7 +90,8 @@ function App() {
     useEffect(() => {
         if (!placingMonster) return;
         const handleMouseMove = (e: MouseEvent) => {
-            setCursorPos({ x: e.clientX, y: e.clientY });
+            cursorPosRef.current = { x: e.clientX, y: e.clientY };
+            setCursorTick(tick => tick + 1); // force re-render
         };
         window.addEventListener('mousemove', handleMouseMove);
         return () => window.removeEventListener('mousemove', handleMouseMove);
@@ -104,8 +112,57 @@ function App() {
         }
     };
     const handleCellClick = (idx: number, value: boolean) => {
+        if (placingMonster && monsterToPlace) {
+            // Local update
+            setGrid(prev => {
+                const next = [...prev];
+                next[idx] = {
+                    occupied: true,
+                    monster: monsterToPlace,
+                };
+                return next;
+            });
+            setPlacingMonster(false);
+            setMonsterToPlace(null);
+            setSnackbarMessage('Monster placed!');
+            setSnackbarSeverity('success');
+            setSnackbarOpen(true);
+
+            // Emit to backend for multiplayer sync
+            if (socket && sessionId) {
+                socket.emit('update_grid', {
+                    session_id: sessionId,
+                    cell_index: idx,
+                    value: {
+                        occupied: true,
+                        monster: monsterToPlace,
+                    }
+                });
+            }
+            return;
+        }
+
+        // Toggle cell color (occupied) when not placing a monster
+        setGrid(prev => {
+            const next = [...prev];
+            next[idx] = {
+                ...next[idx],
+                occupied: !next[idx].occupied,
+                ...(next[idx].occupied ? {} : { monster: undefined }),
+            };
+            return next;
+        });
+
+        // Emit toggle to backend
         if (socket && sessionId) {
-            socket.emit('update_grid', { session_id: sessionId, cell_index: idx, value });
+            socket.emit('update_grid', {
+                session_id: sessionId,
+                cell_index: idx,
+                value: {
+                    occupied: !grid[idx].occupied,
+                    monster: grid[idx].occupied ? undefined : grid[idx].monster,
+                }
+            });
         }
     };
     const handleLeaveSession = () => {
@@ -118,31 +175,19 @@ function App() {
     };
 
     return (
-        <Box minHeight="100vh" bgcolor="#242527">
+        <div className='app-root'>
             <Header 
                 onLeaveSession={handleLeaveSession}
                 showLeaveButton={sessionJoined}
             />
-            <Box
-                display="flex"
-                justifyContent="center"
-                alignItems="center"
-                minHeight="calc(100vh - 80px)" // adjust 80px if your header height is different
-                gap={4}
-            >
-                <Box minWidth={300} ml={4} display="flex" justifyContent="flex-start">
-                    <MonsterDropdown
-                        onSelect={(monster) => {
-                            setMonsterToPlace(monster);
-                            setPlacingMonster(true);
-                        }}
-                    />
-                </Box>
-                <CombatGrid 
-                    grid={gridToShow}
-                    onCellClick={handleCellClick}
-                />
-            </Box>
+            <BoardArea
+                grid={gridToShow}
+                onCellClick={handleCellClick}
+                onMonsterSelect={(monster) => {
+                    setMonsterToPlace(monster);
+                    setPlacingMonster(true);
+                }}
+            />
             <Modal
                 open={!sessionJoined}
                 closeAfterTransition
@@ -176,40 +221,13 @@ function App() {
                 onClose={() => setSnackbarOpen(false)}
             />
             {placingMonster && monsterToPlace && (
-                <Box
-                    sx={{
-                        position: 'fixed',
-                        left: cursorPos.x + 10,
-                        top: cursorPos.y + 10,
-                        pointerEvents: 'none',
-                        zIndex: 2000,
-                    }}
-                >
-                    {monsterToPlace.image ? (
-                        <img
-                            src={`https://www.dnd5eapi.co${monsterToPlace.image}`}
-                            alt={monsterToPlace.name}
-                            width={48}
-                            height={48}
-                            style={{ borderRadius: 8, border: '2px solid #bb1e1eff', background: '#fff' }}
-                        />
-                    ) : (
-                        <Box
-                            sx={{
-                                bgcolor: '#bb1e1eff',
-                                color: '#fff',
-                                px: 2,
-                                py: 1,
-                                borderRadius: 1,
-                                fontWeight: 600,
-                            }}
-                        >
-                            {monsterToPlace.name}
-                        </Box>
-                    )}
-                </Box>
+                <MonsterCursorOverlay
+                    placingMonster={placingMonster}
+                    monsterToPlace={monsterToPlace}
+                    cursorPos={cursorPosRef.current}
+                />
             )}
-        </Box>
+        </div>
     );
 }
 

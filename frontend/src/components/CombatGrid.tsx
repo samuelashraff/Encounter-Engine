@@ -1,10 +1,11 @@
 import { Box } from '@mui/material';
 import { useEffect, useState } from 'react';
-import { appBarHeight } from './Header';
+import { APP_BAR_HEIGHT } from '../constants';
 import '../index.css';
+import type { GridCell } from '../App';
 
 interface CombatGridProps {
-  grid: boolean[];
+  grid: GridCell[];
   onCellClick: (idx: number, value: boolean) => void;
   gridSize?: number;
   padding?: number;
@@ -16,7 +17,7 @@ export default function CombatGrid({ grid, onCellClick, gridSize = 16, padding =
     useEffect(() => {
         function handleResize() {
             const availableWidth = window.innerWidth - padding * 2;
-            const availableHeight = window.innerHeight - appBarHeight - padding * 2;
+            const availableHeight = window.innerHeight - APP_BAR_HEIGHT - padding * 2;
             setGridPx(Math.min(availableWidth, availableHeight));
         }
         handleResize();
@@ -31,7 +32,7 @@ export default function CombatGrid({ grid, onCellClick, gridSize = 16, padding =
             justifyContent="center"
             alignItems="center"
             width="100%"
-            height={`calc(100vh - ${appBarHeight}px)`}
+            height={`calc(100vh - ${APP_BAR_HEIGHT}px)`}
             p={4}
             boxSizing="border-box"
         >
@@ -49,12 +50,28 @@ export default function CombatGrid({ grid, onCellClick, gridSize = 16, padding =
                         key={idx}
                         width="100%"
                         height="100%"
-                        bgcolor={cell ? "#bc0f0f" : "#fff"}
+                        bgcolor={"#fff"}
                         border="1px solid #bbb"
                         boxSizing="border-box"
-                        sx={{ aspectRatio: '1 / 1' }}
-                        onClick={() => onCellClick(idx, !cell)}
-                    />
+                        sx={{ aspectRatio: '1 / 1', cursor: 'pointer', position: 'relative' }}
+                        onClick={() => onCellClick(idx, !cell.occupied)}
+                    >
+                        {cell.monster?.image && (
+                            <img
+                                src={`https://www.dnd5eapi.co${cell.monster.image}`}
+                                alt={cell.monster.name}
+                                style={{
+                                    position: 'absolute',
+                                    top: '50%',
+                                    left: '50%',
+                                    width: '100%',
+                                    height: '100%',
+                                    transform: 'translate(-50%, -50%)',
+                                    pointerEvents: 'none',
+                                }}
+                            />
+                        )}
+                    </Box>
                 ))}
             </Box>
         </Box>
