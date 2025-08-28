@@ -68,14 +68,17 @@ export default function MonsterDropdown({ onSelect }: MonsterDropdownProps) {
             getOptionLabel={(option) => option.name}
             onChange={(_, value) => value && onSelect(value)}
             sx={monsterDropdownSx}
-            renderOption={(props, option) => (
-                <Box component="li" {...props} display="flex" alignItems="center" sx={{cursor: 'pointer'}}>
-                    {option.image && (
-                        <Avatar src={`${DND_API_URL}${option.image}`} sx={{ width: 32, height: 32, mr: 1 }} />
-                    )}
-                    {option.name}
-                </Box>
-            )}
+            renderOption={(props, option) => {
+                const {key, ... rest} = props;
+                return (
+                    <Box component="li" key={key} {...rest} display="flex" alignItems="center" sx={{cursor: 'pointer'}}>
+                        {option.image && (
+                            <Avatar src={`${DND_API_URL}${option.image}`} sx={{ width: 32, height: 32, mr: 1 }} />
+                        )}
+                        {option.name}
+                    </Box>
+                )
+            }}
             renderInput={(params) => (
                 <TextField
                     {...params}

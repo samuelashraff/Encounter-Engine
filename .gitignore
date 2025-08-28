@@ -1,0 +1,6 @@
+# Backend Python
+/backend/venv
+
+# Frontend
+/frontend/node_modules
+/frontend/package-lock.json
