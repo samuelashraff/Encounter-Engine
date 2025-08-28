@@ -3,3 +3,4 @@ uvicorn
 python-socketio[asyncio_client]
 python-socketio[asyncio_server]
 httpx
+redis
