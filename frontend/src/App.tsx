@@ -23,6 +23,8 @@ function App() {
     const [sessionId, setSessionId] = useState('');
     const [inputSessionId, setInputSessionId] = useState('');
     const [grid, setGrid] = useState<GridCell[]>([]);
+    const [sessionTitle, setSessionTitle] = useState("");
+    const [numPlayers, setNumPlayers] = useState<number | undefined>(undefined);
 
     // SnackBar states
     const [snackbarOpen, setSnackbarOpen] = useState(false);
@@ -106,8 +108,11 @@ function App() {
             socket.emit('join_session', { session_id: inputSessionId.trim() });
         }
     };
-    const handleCreateSession = () => {
+    const handleCreateSession = (title: string, numPlayers: number) => {
+        setSessionTitle(title);
+        setNumPlayers(numPlayers);
         if (socket) {
+            // You may want to send title/numPlayers to backend in the future
             socket.emit('create_session');
         }
     };
@@ -168,6 +173,8 @@ function App() {
     const handleLeaveSession = () => {
         setSessionJoined(false);
         setSessionId('');
+        setSessionTitle('');
+        setNumPlayers(undefined);
         setGrid([]);
         setSnackbarMessage('You have left the session.');
         setSnackbarSeverity('success');
@@ -187,6 +194,8 @@ function App() {
                     setMonsterToPlace(monster);
                     setPlacingMonster(true);
                 }}
+                sessionTitle={sessionTitle}
+                numPlayers={numPlayers}
             />
             <Modal
                 open={!sessionJoined}

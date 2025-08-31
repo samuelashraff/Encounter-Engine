@@ -1,0 +1,35 @@
+.sessionform-root-create {
+  padding-left: 1.5rem;
+}
+
+.sessionform-root {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-right: 1.5rem;
+}
+
+.sessionform-title {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: rgb(255, 0, 0);
+  margin-bottom: 1rem;
+}
+
+.sessionform-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.sessionform-join-btn {
+  background: #bb1e1eff !important;
+  color: #fff;
+  font-weight: 600;
+  margin-top: 0.5rem;
+  transition: background 0.2s;
+}
+.sessionform-join-btn:hover {
+  background: #7a1010 !important;
+}
