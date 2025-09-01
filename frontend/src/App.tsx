@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
 import BoardArea from './components/BoardArea';
 import { Box, Modal, Backdrop } from '@mui/material';
@@ -7,7 +7,6 @@ import { useSocket } from './context/SocketContext';
 import type { AlertColor } from '@mui/material/Alert';
 import SessionSnackbar from './components/SessionSnackbar';
 import type { Monster } from './components/MonsterDropdown';
-import MonsterCursorOverlay from './components/MonsterCursorOverlay';
 
 
 export type GridCell = {
@@ -31,11 +30,6 @@ function App() {
     const [snackbarMessage, setSnackbarMessage] = useState('');
     const [snackbarSeverity, setSnackbarSeverity] = useState<AlertColor>('success');
 
-    // Monster placement logic
-    const [monsterToPlace, setMonsterToPlace] = useState<Monster | null>(null);
-    const [placingMonster, setPlacingMonster] = useState(false);
-    const cursorPosRef = useRef({ x: 0, y: 0 });
-    const [, setCursorTick] = useState(0); // dummy state to force re-render
 
     // Compute the grid to show: real grid if joined, empty otherwise
     const gridToShow = sessionJoined
@@ -89,26 +83,17 @@ function App() {
         };
     }, [socket]);
 
-    useEffect(() => {
-        if (!placingMonster) return;
-        const handleMouseMove = (e: MouseEvent) => {
-            cursorPosRef.current = { x: e.clientX, y: e.clientY };
-            setCursorTick(tick => tick + 1); // force re-render
-        };
-        window.addEventListener('mousemove', handleMouseMove);
-        return () => window.removeEventListener('mousemove', handleMouseMove);
-    }, [placingMonster]);
 
 
 
     // Handlers for form
-    const handleJoinSession = (e: React.FormEvent) => {
+    function handleJoinSession(e: React.FormEvent) {
         e.preventDefault();
         if (socket && inputSessionId.trim()) {
             socket.emit('join_session', { session_id: inputSessionId.trim() });
         }
     };
-    const handleCreateSession = (title: string, numPlayers: number) => {
+    function handleCreateSession(title: string, numPlayers: number) {
         setSessionTitle(title);
         setNumPlayers(numPlayers);
         if (socket) {
@@ -116,37 +101,7 @@ function App() {
             socket.emit('create_session');
         }
     };
-    const handleCellClick = (idx: number, value: boolean) => {
-        if (placingMonster && monsterToPlace) {
-            // Local update
-            setGrid(prev => {
-                const next = [...prev];
-                next[idx] = {
-                    occupied: true,
-                    monster: monsterToPlace,
-                };
-                return next;
-            });
-            setPlacingMonster(false);
-            setMonsterToPlace(null);
-            setSnackbarMessage('Monster placed!');
-            setSnackbarSeverity('success');
-            setSnackbarOpen(true);
-
-            // Emit to backend for multiplayer sync
-            if (socket && sessionId) {
-                socket.emit('update_grid', {
-                    session_id: sessionId,
-                    cell_index: idx,
-                    value: {
-                        occupied: true,
-                        monster: monsterToPlace,
-                    }
-                });
-            }
-            return;
-        }
-
+    function handleCellClick(idx: number, value: boolean) {
         // Toggle cell color (occupied) when not placing a monster
         setGrid(prev => {
             const next = [...prev];
@@ -170,7 +125,31 @@ function App() {
             });
         }
     };
-    const handleLeaveSession = () => {
+
+    // Helper for placing monster in a cell
+    function handleMonsterSelect(monster: Monster, idx: number) {
+        setGrid(prev => {
+            const next = [...prev];
+            next[idx] = {
+                occupied: true,
+                monster,
+            };
+            return next;
+        });
+        // Emit to backend for multiplayer sync
+        if (socket && sessionId) {
+            socket.emit('update_grid', {
+                session_id: sessionId,
+                cell_index: idx,
+                value: {
+                    occupied: true,
+                    monster,
+                }
+            });
+        }
+    }
+
+    function handleLeaveSession() {
         setSessionJoined(false);
         setSessionId('');
         setSessionTitle('');
@@ -190,10 +169,7 @@ function App() {
             <BoardArea
                 grid={gridToShow}
                 onCellClick={handleCellClick}
-                onMonsterSelect={(monster) => {
-                    setMonsterToPlace(monster);
-                    setPlacingMonster(true);
-                }}
+                onMonsterSelect={handleMonsterSelect}
                 sessionTitle={sessionTitle}
                 numPlayers={numPlayers}
             />
@@ -212,7 +188,7 @@ function App() {
                     display="flex"
                     justifyContent="center"
                     alignItems="center"
-                    height="100vh"
+                    height="100%"
                 >
                     <SessionSignUpForm
                         inputSessionId={inputSessionId}
@@ -229,13 +205,6 @@ function App() {
                 severity={snackbarSeverity}
                 onClose={() => setSnackbarOpen(false)}
             />
-            {placingMonster && monsterToPlace && (
-                <MonsterCursorOverlay
-                    placingMonster={placingMonster}
-                    monsterToPlace={monsterToPlace}
-                    cursorPos={cursorPosRef.current}
-                />
-            )}
         </div>
     );
 }

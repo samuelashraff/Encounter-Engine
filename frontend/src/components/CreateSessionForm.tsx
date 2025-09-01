@@ -7,7 +7,8 @@ interface CreateSessionFormProps {
   onCreate: (sessionTitle: string, numPlayers: number) => void;
 }
 
-const CreateSessionForm: React.FC<CreateSessionFormProps> = ({ onCreate }) => {
+
+export default function CreateSessionForm({ onCreate }: CreateSessionFormProps) {
   const [sessionTitle, setSessionTitle] = useState('');
   const [numPlayers, setNumPlayers] = useState(1);
 
@@ -76,6 +77,4 @@ const CreateSessionForm: React.FC<CreateSessionFormProps> = ({ onCreate }) => {
       </form>
     </div>
   );
-};
-
-export default CreateSessionForm;
+}

@@ -60,7 +60,7 @@ export default function Header({ onLeaveSession, showLeaveButton }: HeaderProps)
                     <Button
                             variant="contained"
                             sx={{
-                                bgcolor: '#bb1e1eff',
+                                bgcolor: '#bc0f0f',
                                 color: '#fff',
                                 '&:hover': { bgcolor: '#7a1010' },
                                 fontWeight: 600,
