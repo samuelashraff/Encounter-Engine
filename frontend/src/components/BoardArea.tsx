@@ -9,6 +9,7 @@ import type { GridCell } from '../App';
 import { Divider } from '@mui/material';
 import '../styles/BoardArea.css';
 import '../styles/CellActionModal.css';
+import SessionInfoPanel from './SessionInfoPanel';
 
 interface BoardAreaProps {
     grid: GridCell[];
@@ -16,9 +17,12 @@ interface BoardAreaProps {
     onMonsterSelect: (monster: Monster, idx: number) => void;
     sessionTitle: string;
     numPlayers?: number;
+    onImportGame?: (grid: GridCell[]) => void;
+    onImportError?: (msg: string) => void;
 }
 
-export default function BoardArea({ grid, onCellClick, onMonsterSelect, sessionTitle, numPlayers }: BoardAreaProps) {
+export default function BoardArea({ grid, onCellClick, onMonsterSelect, sessionTitle, numPlayers, onImportGame, onImportError }: BoardAreaProps) {
+
     const [modalOpen, setModalOpen] = useState(false);
     const [selectedCell, setSelectedCell] = useState<number | null>(null);
 
@@ -51,27 +55,18 @@ export default function BoardArea({ grid, onCellClick, onMonsterSelect, sessionT
         <div className="boardarea-root">
             {/* Left column: Session Info */}
             <div className="boardarea-left-col">
-                {(sessionTitle && numPlayers) && (
-                    <>
-                        <h1 className="boardarea-session-main-title">Session Info</h1>
-                        <div className="boardarea-session-info-outer">
-                            <div className="boardarea-session-info-area">
-                                <span className="boardarea-session-label">Session name: </span>
-                                <span className="boardarea-session-title">{sessionTitle}</span>
-                            </div>
-                            <div className="boardarea-session-info-area">
-                                <span className="boardarea-session-label">Players: </span>
-                                <span className="boardarea-session-title">{numPlayers}</span>
-                            </div>
-                        </div>
-                    </>
-                )}
+                <SessionInfoPanel
+                    sessionTitle={sessionTitle}
+                    numPlayers={numPlayers}
+                    grid={grid}
+                    onImportGame={onImportGame}
+                    onImportError={onImportError}
+                />
             </div>
 
-            {/* Divider remains if you want visual separation */}
             <Divider orientation="vertical" flexItem sx={{ mx: 3, borderColor: '#fff', mt: "2.5rem", mb: "5.5rem" }}/>
 
-            {/* Right column: Grid only */}
+            {/* Right column */}
             <div className="boardarea-right-main-col">
                 <div className="boardarea-grid-row">
                     <CombatGrid 

@@ -160,6 +160,19 @@ function App() {
         setSnackbarOpen(true);
     };
 
+    function handleImportGame(importedGrid: GridCell[]) {
+        setGrid(importedGrid);
+        setSnackbarMessage('Game imported successfully!');
+        setSnackbarSeverity('success');
+        setSnackbarOpen(true);
+    }
+
+    function handleImportError(msg: string) {
+        setSnackbarMessage(msg);
+        setSnackbarSeverity('error');
+        setSnackbarOpen(true);
+    }
+
     return (
         <div className='app-root'>
             <Header 
@@ -172,6 +185,8 @@ function App() {
                 onMonsterSelect={handleMonsterSelect}
                 sessionTitle={sessionTitle}
                 numPlayers={numPlayers}
+                onImportGame={handleImportGame}
+                onImportError={handleImportError}
             />
             <Modal
                 open={!sessionJoined}

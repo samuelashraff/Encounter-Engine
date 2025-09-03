@@ -1,0 +1,41 @@
+.combatgrid-root {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 2rem;
+}
+
+.combatgrid-grid {
+  display: grid;
+  background: #ccc;
+  gap: 1px;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.combatgrid-cell {
+  background: #fff;
+  border: 1px solid #bbb;
+  aspect-ratio: 1 / 1;
+  cursor: pointer;
+  position: relative;
+  box-sizing: border-box;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.combatgrid-cell-occupied {
+  background: #f8e6e6;
+  border-color: #bb1e1eff;
+}
+
+.combatgrid-monster-img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  object-fit: contain;
+}
