@@ -1,3 +1,4 @@
+import { moveMonster } from './utils/helpers';
 import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
 import BoardArea from './components/BoardArea';
@@ -84,7 +85,48 @@ function App() {
     }, [socket]);
 
 
+    // Move monster from one cell to another
+    function onMoveMonster(fromIdx: number, toIdx: number) {
+        setGrid(prev => {
+            const next = moveMonster(prev, fromIdx, toIdx);
+            // Emit to backend for multiplayer sync
+            if (socket && sessionId) {
+                socket.emit('update_grid', {
+                    session_id: sessionId,
+                    cell_index: fromIdx,
+                    value: { occupied: false }
+                });
+                socket.emit('update_grid', {
+                    session_id: sessionId,
+                    cell_index: toIdx,
+                    value: { occupied: true, monster: prev[fromIdx].monster }
+                });
+            }
+            return next;
+        });
+        setSnackbarMessage('Monster moved successfully!');
+        setSnackbarSeverity('success');
+        setSnackbarOpen(true);
+    }
 
+    // Remove monster from a cell
+    function handleRemoveMonster(idx: number) {
+        setGrid(prev => {
+            const next = [...prev];
+            next[idx] = { occupied: false };
+            return next;
+        });
+        if (socket && sessionId) {
+            socket.emit('update_grid', {
+                session_id: sessionId,
+                cell_index: idx,
+                value: { occupied: false }
+            });
+        }
+        setSnackbarMessage('Monster removed successfully!');
+        setSnackbarSeverity('success');
+        setSnackbarOpen(true);
+    }
 
     // Handlers for form
     function handleJoinSession(e: React.FormEvent) {
@@ -99,30 +141,6 @@ function App() {
         if (socket) {
             // You may want to send title/numPlayers to backend in the future
             socket.emit('create_session');
-        }
-    };
-    function handleCellClick(idx: number, value: boolean) {
-        // Toggle cell color (occupied) when not placing a monster
-        setGrid(prev => {
-            const next = [...prev];
-            next[idx] = {
-                ...next[idx],
-                occupied: !next[idx].occupied,
-                ...(next[idx].occupied ? {} : { monster: undefined }),
-            };
-            return next;
-        });
-
-        // Emit toggle to backend
-        if (socket && sessionId) {
-            socket.emit('update_grid', {
-                session_id: sessionId,
-                cell_index: idx,
-                value: {
-                    occupied: !grid[idx].occupied,
-                    monster: grid[idx].occupied ? undefined : grid[idx].monster,
-                }
-            });
         }
     };
 
@@ -181,8 +199,9 @@ function App() {
             />
             <BoardArea
                 grid={gridToShow}
-                onCellClick={handleCellClick}
                 onMonsterSelect={handleMonsterSelect}
+                onMoveMonster={onMoveMonster}
+                onRemoveMonster={handleRemoveMonster}
                 sessionTitle={sessionTitle}
                 numPlayers={numPlayers}
                 onImportGame={handleImportGame}

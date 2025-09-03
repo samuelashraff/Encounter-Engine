@@ -14,9 +14,6 @@ interface MonsterDropdownProps {
     onSelect: (monster: Monster) => void;
 }
 
-
-
-
 export default function MonsterDropdown({ onSelect }: MonsterDropdownProps) {
     const [open, setOpen] = useState(false);
     const [options, setOptions] = useState<Monster[]>([]);

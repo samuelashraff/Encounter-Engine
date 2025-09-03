@@ -13,15 +13,16 @@ import SessionInfoPanel from './SessionInfoPanel';
 
 interface BoardAreaProps {
     grid: GridCell[];
-    onCellClick: (idx: number, value: boolean) => void;
     onMonsterSelect: (monster: Monster, idx: number) => void;
+    onMoveMonster: (fromIdx: number, toIdx: number) => void;
+    onRemoveMonster: (idx: number) => void;
     sessionTitle: string;
     numPlayers?: number;
     onImportGame?: (grid: GridCell[]) => void;
     onImportError?: (msg: string) => void;
 }
 
-export default function BoardArea({ grid, onCellClick, onMonsterSelect, sessionTitle, numPlayers, onImportGame, onImportError }: BoardAreaProps) {
+export default function BoardArea({ grid, onMonsterSelect, onMoveMonster, onRemoveMonster, sessionTitle, numPlayers, onImportGame, onImportError }: BoardAreaProps) {
 
     const [modalOpen, setModalOpen] = useState(false);
     const [selectedCell, setSelectedCell] = useState<number | null>(null);
@@ -39,7 +40,7 @@ export default function BoardArea({ grid, onCellClick, onMonsterSelect, sessionT
 
     function handleRemove() {
         if (selectedCell !== null) {
-            onCellClick(selectedCell, false); // Remove monster from cell
+            onRemoveMonster(selectedCell); // Remove monster from cell
         }
         setModalOpen(false);
     }
@@ -52,7 +53,7 @@ export default function BoardArea({ grid, onCellClick, onMonsterSelect, sessionT
     }
 
     return (
-        <div className="boardarea-root">
+        <div className="boardarea-root"> 
             {/* Left column: Session Info */}
             <div className="boardarea-left-col">
                 <SessionInfoPanel
@@ -72,6 +73,8 @@ export default function BoardArea({ grid, onCellClick, onMonsterSelect, sessionT
                     <CombatGrid 
                         grid={grid}
                         onCellClick={handleCellClick}
+                        onMoveMonster={onMoveMonster}
+                        onError={onImportError}
                     />
                 </div>
             </div>
