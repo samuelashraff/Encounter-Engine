@@ -38,13 +38,43 @@ function App() {
         : Array(16 * 16).fill(null).map(() => ({ occupied: false })); // 16x16 empty grid
 
 
-    // UseEffects
+    function normalizeGridFromServer(serverGrid: any[]): GridCell[] {
+        // Ensure serverGrid is an array; otherwise return an empty grid
+        const size = 16 * 16;
+        if (!Array.isArray(serverGrid)) {
+            return Array.from({ length: size }, () => ({ occupied: false }));
+        }
+
+        return serverGrid.slice(0, size).map((cell) => {
+            if (cell === null || cell === undefined) {
+            return { occupied: false };
+            }
+            // If server sends booleans
+            if (typeof cell === 'boolean') {
+            return { occupied: cell };
+            }
+            // If server sends an object with 'occupied' already
+            if (typeof cell === 'object' && 'occupied' in cell) {
+            return cell as GridCell;
+            }
+            // Otherwise fallback
+            return { occupied: false };
+        }).concat(
+            // if serverGrid shorter than expected, pad
+            Array.from({ length: Math.max(0, size - serverGrid.length) }, () => ({ occupied: false }))
+        ).slice(0, size);
+        }
+
+
+    // Websocket useEffect
     useEffect(() => {
         if (!socket) return;
 
         const onSessionCreated = (data: any) => {
             setSessionId(data.session_id);
-            setGrid(data.grid);
+            setGrid(normalizeGridFromServer(data.grid));
+            setSessionTitle(data.title ?? "");
+            setNumPlayers(data.num_players ?? undefined);
             setSessionJoined(true);
             setSnackbarMessage('Session created successfully!');
             setSnackbarSeverity('success');
@@ -52,7 +82,9 @@ function App() {
         };
         const onSessionJoined = (data: any) => {
             setSessionId(data.session_id);
-            setGrid(data.grid);
+            setGrid(normalizeGridFromServer(data.grid));
+            setSessionTitle(data.title ?? "");
+            setNumPlayers(data.num_players ?? undefined);
             setSessionJoined(true);
             setSnackbarMessage('Joined session successfully!');
             setSnackbarSeverity('success');
@@ -65,8 +97,19 @@ function App() {
         };
         const onGridUpdated = (data: any) => {
             setGrid(prev => {
-                const next = [...prev];
-                next[data.cell_index] = data.value;
+                const next = prev && prev.length ? [...prev] : normalizeGridFromServer([]);
+                const idx = Number(data.cell_index);
+                if (Number.isNaN(idx) || idx < 0 || idx >= next.length) return next;
+
+                const value = data.value;
+                if (typeof value === 'boolean') {
+                next[idx] = { occupied: value };
+                } else if (value && typeof value === 'object' && 'occupied' in value) {
+                next[idx] = value;
+                } else {
+                // fallback: mark as empty
+                next[idx] = { occupied: false };
+                }
                 return next;
             });
         };
@@ -140,7 +183,7 @@ function App() {
         setNumPlayers(numPlayers);
         if (socket) {
             // You may want to send title/numPlayers to backend in the future
-            socket.emit('create_session');
+            socket.emit('create_session', { title, num_players: numPlayers });
         }
     };
 
@@ -168,15 +211,21 @@ function App() {
     }
 
     function handleLeaveSession() {
-        setSessionJoined(false);
-        setSessionId('');
-        setSessionTitle('');
-        setNumPlayers(undefined);
-        setGrid([]);
-        setSnackbarMessage('You have left the session.');
-        setSnackbarSeverity('success');
-        setSnackbarOpen(true);
-    };
+        if (socket && sessionId) {
+            socket.emit('leave_session', { session_id: sessionId });
+            // Clear local state after backend confirms
+            socket.once('leave_confirmed', () => {
+                setSessionJoined(false);
+                setSessionId('');
+                setSessionTitle('');
+                setNumPlayers(undefined);
+                setGrid([]);
+                setSnackbarMessage('You have left the session.');
+                setSnackbarSeverity('success');
+                setSnackbarOpen(true);
+            });
+        }
+}
 
     function handleImportGame(importedGrid: GridCell[]) {
         setGrid(importedGrid);

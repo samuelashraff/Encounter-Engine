@@ -63,15 +63,26 @@ async def connect(session_id, environ):
 # Handles creation of a new session. Generates a unique session ID, initializes a grid,
 # stores the session and user in Redis, and emits a 'session_created' event to the client.
 @sio.event
-async def create_session(session_id):
+async def create_session(session_id, data=None):
+    # data may be None if client emitted without payload
+    title = None
+    num_players = None
+    if isinstance(data, dict):
+        title = data.get("title")
+        num_players = data.get("num_players")
+
     new_session_id = str(uuid.uuid4())[:8]
-    grid = [False] * (GRID_SIZE * GRID_SIZE)    # Set all cells to False
-    await redis.hset(f"session:{new_session_id}", mapping={
-        "grid": json.dumps(grid)
-    })
+    grid = [False] * (GRID_SIZE * GRID_SIZE)
+    # store grid and metadata in hash
+    mapping = {"grid": json.dumps(grid)}
+    if title is not None:
+        mapping["title"] = title
+    if num_players is not None:
+        mapping["num_players"] = str(num_players)
+    await redis.hset(f"session:{new_session_id}", mapping=mapping)
     await redis.sadd(f"session:{new_session_id}:users", session_id)
     await sio.enter_room(session_id, new_session_id)
-    await sio.emit('session_created', {"session_id": new_session_id, "grid": grid}, to=session_id)
+    await sio.emit('session_created', {"session_id": new_session_id, "grid": grid, "title": title, "num_players": num_players}, to=session_id)
     print(f"Session created: {new_session_id} by {session_id}")
 
 # Allows a client to join an existing session. Adds the user to the session's user set in Redis,
@@ -84,11 +95,13 @@ async def join_session(session_id, data):
         await sio.enter_room(session_id, join_session_id)
         grid_json = await redis.hget(f"session:{join_session_id}", "grid")
         grid = json.loads(grid_json)
-        await sio.emit('session_joined', {"session_id": join_session_id, "grid": grid}, to=session_id)
+        title = await redis.hget(f"session:{join_session_id}", "title")
+        num_players_str = await redis.hget(f"session:{join_session_id}", "num_players")
+        num_players = int(num_players_str) if num_players_str is not None else None
+        await sio.emit('session_joined', {"session_id": join_session_id, "grid": grid, "title": title, "num_players": num_players}, to=session_id)
         print(f"User {session_id} joined session {join_session_id}")
     else:
         await sio.emit('error', {"message": "Session not found."}, to=session_id)
-
 
 # Updates the grid state for a session in Redis when a client makes a change.
 # Emits a 'grid_updated' event to all users in the session's room.
@@ -110,14 +123,33 @@ async def update_grid(session_id, data):
 @sio.event
 async def disconnect(session_id):
     print(f"Client disconnected: {session_id}")
-    # Remove user from all session user sets
-    async for key in redis.scan_iter("session:*:users"):
-        await redis.srem(key, session_id)
-        if await redis.scard(key) == 0:
-            # Delete session if no users left
-            session_id_to_delete = key.decode().split(":")[1]
-            await redis.delete(f"session:{session_id_to_delete}")
-            await redis.delete(key)
+    try:
+        # Get all sessions this user is part of
+        async for key in redis.scan_iter("session:*:users"):
+            # Remove user from session
+            await redis.srem(key, session_id)
+            # Check if session is empty
+            if await redis.scard(key) == 0:
+                # Extract session_id from key (e.g., "session:abc123:users" -> "abc123")
+                session_id_to_delete = key.split(":")[1]
+                # Delete session data and user set
+                await redis.delete(f"session:{session_id_to_delete}")
+                await redis.delete(key)
+                print(f"Cleaned up empty session: {session_id_to_delete}")
+    except Exception as e:
+        print(f"Error in disconnect handler: {e}")
+
+@sio.event
+async def leave_session(session_id, data):
+    leave_session_id = data.get("session_id")
+    if await redis.exists(f"session:{leave_session_id}"):
+        # Remove user from session
+        await redis.srem(f"session:{leave_session_id}:users", session_id)
+        await sio.leave_room(session_id, leave_session_id)
+        # Check if session is empty
+        if await redis.scard(f"session:{leave_session_id}:users") == 0:
+            await redis.delete(f"session:{leave_session_id}")
+        await sio.emit('leave_confirmed', to=session_id)
 
 if __name__ == "__main__":
     uvicorn.run("main:socket_app", host="0.0.0.0", port=8000, reload=True)

@@ -22,7 +22,7 @@ interface BoardAreaProps {
     onImportError?: (msg: string) => void;
 }
 
-export default function BoardArea({ grid, onMonsterSelect, onMoveMonster, onRemoveMonster, sessionTitle, numPlayers, onImportGame, onImportError }: BoardAreaProps) {
+export default function BoardArea({ grid, onMonsterSelect, onRemoveMonster, sessionTitle, numPlayers, onImportGame, onImportError }: BoardAreaProps) {
 
     const [modalOpen, setModalOpen] = useState(false);
     const [selectedCell, setSelectedCell] = useState<number | null>(null);
@@ -65,7 +65,7 @@ export default function BoardArea({ grid, onMonsterSelect, onMoveMonster, onRemo
                 />
             </div>
 
-            <Divider orientation="vertical" flexItem sx={{ mx: 3, borderColor: '#fff', mt: "2.5rem", mb: "5.5rem" }}/>
+            <Divider orientation="vertical" className="boardarea-divider" />
 
             {/* Right column */}
             <div className="boardarea-right-main-col">
@@ -73,7 +73,6 @@ export default function BoardArea({ grid, onMonsterSelect, onMoveMonster, onRemo
                     <CombatGrid 
                         grid={grid}
                         onCellClick={handleCellClick}
-                        onMoveMonster={onMoveMonster}
                         onError={onImportError}
                     />
                 </div>

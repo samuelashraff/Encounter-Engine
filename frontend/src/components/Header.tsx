@@ -1,4 +1,3 @@
-import { APP_BAR_HEIGHT } from '../constants';
 import '../styles/Header.css';
 
 interface HeaderProps {
@@ -8,7 +7,7 @@ interface HeaderProps {
 
 export default function Header({ onLeaveSession, showLeaveButton }: HeaderProps) {
     return (
-        <header className="header-appbar" style={{ minHeight: APP_BAR_HEIGHT }}>
+        <header className="header-appbar">
             <div className="header-toolbar">
                 {/* Left: Leave Button */}
                 <div className="header-left">
@@ -22,11 +21,8 @@ export default function Header({ onLeaveSession, showLeaveButton }: HeaderProps)
                 <div className="header-center">
                     <span className="header-title">DnD Encounter Engine</span>
                 </div>
-                {/* Right: Sign in */}
+                {/* Right: Empty section to maintain layout */}
                 <div className="header-right">
-                    <button className="header-signin-btn">
-                        Sign in
-                    </button>
                 </div>
             </div>
         </header>
