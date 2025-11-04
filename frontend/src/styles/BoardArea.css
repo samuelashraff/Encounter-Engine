@@ -17,103 +17,189 @@
   font-size: 1.1rem;
   cursor: pointer;
   text-transform: none;
-  margin-top: 1.2rem;
   margin-bottom: 0.5rem;
   transition: background 0.18s;
 }
 .boardarea-export-btn:hover {
   background: #7a1010;
 }
-/*
- * BoardArea.css (new layout for two-column BoardArea)
- */
+
+/* Export / Import controls container (top-right overlay) */
+.export-import-controls {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+  z-index: 60; /* above canvas */
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+/* SessionInfoPanel top-centered overlay */
+.sessioninfo-top {
+  position: absolute;
+  top: 1.25rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 70; /* above export/import */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  padding: 0.35rem 0.75rem;
+  background: rgba(18,18,20,0.5);
+  backdrop-filter: blur(6px);
+  border-radius: 0.6rem;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+}
+.boardarea-session-info-outer {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  min-height: 40px;
+}
+.boardarea-session-label {
+  font-weight: 700;
+  color: #cfd8dc;
+  margin-right: 0.25rem;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  opacity: 0.95;
+}
+.boardarea-session-title {
+  font-size: 1.05rem;
+  color: #ffffff;
+  font-weight: 400;
+  padding: 0.1rem 0.4rem;
+  background: linear-gradient(90deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+  border-radius: 0.35rem;
+}
+
+@media (max-width: 640px) {
+  .sessioninfo-top {
+    top: 0.75rem;
+    padding: 0.25rem 0.5rem;
+  }
+  .boardarea-session-title { font-size: 0.95rem; }
+  .boardarea-session-label { font-size: 0.64rem; }
+}
+
 
 .boardarea-root {
+  --boardarea-header-height: 80px; /* matches .header-toolbar min-height */
   display: flex;
   flex-direction: row;
   justify-content: flex-start;
   align-items: stretch;
   width: 100%;
-  height: calc(100vh - 5rem); /* Viewport height minus header */
+  /* Make board area fill viewport minus header */
+  height: calc(100vh - var(--boardarea-header-height));
   max-width: 100vw;
   margin: 0 auto;
   gap: 3rem; /* Increased gap between sections */
   padding: 2rem 3rem; /* Increased padding for better spacing */
   box-sizing: border-box;
   overflow: hidden; /* Prevent scrolling */
+  position: relative; /* allow absolute-positioned overlays */
 }
 
-.boardarea-left-col {
-  flex: 0 0 auto;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: flex-start;
-  width: clamp(20rem, 30%, 32rem); /* Wider and more flexible width range */
+.canvas-area {
   height: 100%;
-  overflow-x: hidden;
-  overflow-y: auto; /* Allow scrolling if content is too tall */
-  padding-right: 1.5rem;
-  box-sizing: border-box; /* Ensure padding is included in width */
 }
 
-.boardarea-right-main-col {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  min-width: 20rem;
-  position: relative;
-  overflow: hidden; /* Ensure grid doesn't overflow */
+/* Monster toolbox positioning and popup */
+.monster-toolbox-root {
+  position: absolute;
+  left: 1rem;
+  /* Center vertically, but nudge below the top overlays so visual center feels correct */
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 80; /* above session info */
 }
-
-.boardarea-session-main-title {
-  color: #bc0f0f;
-  font-weight: bold;
-}
-
-.boardarea-session-info-outer {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  margin-left: 1.5rem;
-  margin-top: 2rem;
-  margin-bottom: 0.5rem;
-  gap: 0.5rem;
-}
-
-.boardarea-session-info-area {
-  display: inline-flex;
-  flex-direction: row !important;
-  align-items: center;
-}
-
-.boardarea-session-label {
-  font-size: 1.1rem;
-  color: #bc0f0f;
-  margin-right: 0.5rem;
-}
-
-.boardarea-session-title {
-  font-weight: bold;
-  font-size: 1.35rem;
+.monster-toolbox-button {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  background: linear-gradient(180deg,#2b2b2f,#17171a);
   color: #fff;
-  padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
+  border: none;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.45);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+.monster-toolbox-popup {
+  position: absolute;
+  left: 56px; /* to the right of button */
+  top: 50%;
+  transform: translateY(-50%);
+  width: 320px;
+  max-width: calc(100vw - 96px);
+  height: 420px; /* fixed height, scroll inside */
+  background: rgba(10,10,12,0.95);
+  color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 12px 34px rgba(0,0,0,0.55);
+  padding: 0.6rem;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.monster-toolbox-header {
+  text-align: center;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.5rem;
+}
+.monster-toolbox-list {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding-right: 0.25rem;
+}
+.monster-toolbox-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.45rem 0.6rem;
+  background: linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  border-radius: 6px;
+  border: none;
+  color: #fff;
+  text-align: left;
+  cursor: pointer;
+}
+.monster-toolbox-item:hover { background: rgba(255,255,255,0.03); }
+.monster-toolbox-avatar {
+  width: 36px;
+  height: 36px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+.monster-toolbox-name { font-weight: 700; }
+
+@media (max-width: 720px) {
+  .monster-toolbox-popup { width: 260px; height: 360px; left: 52px; }
+  .monster-toolbox-button { width: 40px; height: 40px; }
 }
 
-.boardarea-dropdown-col {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  margin-bottom: 1rem;
+/* Icon sizing helper for images placed inside the toolbox button */
+.monster-toolbox-button {
+  /* allow icons inside to size relative to this button using --icon-scale */
+  --icon-scale: 0.55; /* fraction of button height */
+}
+.monster-toolbox-button img,
+.monster-toolbox-icon {
+  height: calc(var(--icon-scale) * 100%);
+  width: auto;
+  object-fit: contain;
+  display: block;
 }
 
-.boardarea-grid-row {
-  width: 100%;
-  display: flex;
-  justify-content: center;
+@media (max-width: 720px) {
+  .monster-toolbox-button { --icon-scale: 0.5; }
 }

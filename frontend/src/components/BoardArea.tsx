@@ -1,59 +1,38 @@
-import { useState } from 'react';
-import Modal from '@mui/material/Modal';
-import Button from '@mui/material/Button';
-import MonsterDropdown from './MonsterDropdown';
+
+import React from 'react';
 import CombatGrid from './CombatGrid';
-import type { Monster } from './MonsterDropdown';
+import ExportImportControls from './ExportImportControls';
 import type { GridCell } from '../App';
-import { Divider } from '@mui/material';
 import '../styles/BoardArea.css';
 import '../styles/CellActionModal.css';
 import SessionInfoPanel from './SessionInfoPanel';
+import MonsterToolbox from './MonsterToolbox';
+import type { Monster as MonsterType } from '../types/monster';
 
 interface BoardAreaProps {
     grid: GridCell[];
-    onMonsterSelect: (monster: Monster, idx: number) => void;
     onRemoveMonster: (idx: number) => void;
+    canvasMonsters?: Array<{ id: string; monster: MonsterType; x: number; y: number }>;
+    onAddCanvasMonster?: (monster: MonsterType, x: number, y: number) => void;
     sessionTitle: string;
     numPlayers?: number;
     onImportGame?: (grid: GridCell[]) => void;
     onImportError?: (msg: string) => void;
 }
 
-export default function BoardArea({ grid, onMonsterSelect, onRemoveMonster, sessionTitle, numPlayers, onImportGame, onImportError }: BoardAreaProps) {
+export default function BoardArea({ grid, canvasMonsters, onAddCanvasMonster, onRemoveMonster, sessionTitle, numPlayers, onImportGame, onImportError }: BoardAreaProps) {
+    // onRemoveMonster will be used once canvas interactions are implemented; keep reference to avoid linter warnings
+    void onRemoveMonster;
+    const [draggingMonster, setDraggingMonster] = React.useState<MonsterType | null>(null);
 
-    const [modalOpen, setModalOpen] = useState(false);
-    const [selectedCell, setSelectedCell] = useState<number | null>(null);
-
-    // Helper to check if cell is empty
-    function cellHasMonster(idx: number | null) {
-        if (idx === null) return false;
-        return grid[idx] && grid[idx].monster;
+    function handleStartDrag(m: MonsterType) {
+        setDraggingMonster(m);
     }
-
-    function handleCellClick(idx: number) {
-        setSelectedCell(idx);
-        setModalOpen(true);
-    }
-
-    function handleRemove() {
-        if (selectedCell !== null) {
-            onRemoveMonster(selectedCell); // Remove monster from cell
-        }
-        setModalOpen(false);
-    }
-
-    function handleMonsterSelect(monster: Monster) {
-        if (selectedCell !== null) {
-            onMonsterSelect(monster, selectedCell); // Place monster directly in cell
-        }
-        setModalOpen(false);
-    }
-
     return (
         <div className="boardarea-root"> 
-            {/* Left column: Session Info */}
-            <div className="boardarea-left-col">
+            <ExportImportControls grid={grid} onImportGame={onImportGame} onImportError={onImportError} />
+            {/* SessionInfoPanel centered at top, overlaid above the canvas */}
+            <div className="sessioninfo-top">
                 <SessionInfoPanel
                     sessionTitle={sessionTitle}
                     numPlayers={numPlayers}
@@ -62,32 +41,20 @@ export default function BoardArea({ grid, onMonsterSelect, onRemoveMonster, sess
                     onImportError={onImportError}
                 />
             </div>
-
-            <Divider orientation="vertical" className="boardarea-divider" />
-
-            {/* Right column */}
-            <div className="boardarea-right-main-col">
-                <div className="boardarea-grid-row">
-                    <CombatGrid 
-                        grid={grid}
-                        onCellClick={handleCellClick}
-                        onError={onImportError}
-                    />
-                </div>
+            {/* Monster toolbox: fixed on center-left */}
+            <MonsterToolbox onStartDrag={handleStartDrag} />
+            <div className="canvas-area">
+                <CombatGrid 
+                    canvasMonsters={canvasMonsters}
+                    draggingMonster={draggingMonster}
+                    onPlaceMonster={(m, nx, ny) => {
+                        // place and notify parent
+                        onAddCanvasMonster?.(m, nx, ny);
+                        setDraggingMonster(null);
+                    }}
+                    onCancelDrag={() => setDraggingMonster(null)}
+                />
             </div>
-            {/* Modal for cell actions */}
-            <Modal
-                open={modalOpen}
-                onClose={() => setModalOpen(false)}
-                className="cellaction-modal"
-            >
-                <div className="cellaction-modal-content">
-                    {cellHasMonster(selectedCell) && (
-                        <Button onClick={handleRemove} className="cellaction-remove-btn">Remove Monster</Button>
-                    )}
-                    <MonsterDropdown onSelect={handleMonsterSelect} />
-                </div>
-            </Modal>
         </div>
     );
 }

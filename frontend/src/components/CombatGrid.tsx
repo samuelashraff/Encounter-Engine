@@ -1,77 +1,34 @@
-import { useEffect, useState } from 'react';
-import { APP_BAR_HEIGHT } from '../constants';
+import React from 'react';
+import { useEffect, useCallback } from 'react';
 import '../styles/CombatGrid.css';
-import type { GridCell } from '../App';
+import type { Monster as MonsterType } from '../types/monster';
 
-interface CombatGridProps {
-    grid: GridCell[];
-    onCellClick: (idx: number, value: boolean) => void;
-    gridSize?: number;
-    padding?: number;
-    onError?: (msg: string) => void;
+interface CanvasMonster {
+    id: string;
+    monster: MonsterType;
+    x: number; // normalized 0..1
+    y: number; // normalized 0..1
 }
 
-export default function CombatGrid({ grid, onCellClick, gridSize = 16, padding = 32 }: CombatGridProps) {
-    const [gridPx, setGridPx] = useState(0);
+interface CombatGridProps {
+    canvasMonsters?: CanvasMonster[];
+    draggingMonster?: MonsterType | null;
+    onPlaceMonster?: (monster: MonsterType, nx: number, ny: number) => void;
+    onCancelDrag?: () => void;
+}
 
-    useEffect(() => {
-        function handleResize() {
-            // Get the container's dimensions
-            const container = document.querySelector('.boardarea-right-main-col');
-            if (!container) return;
-            
-            const containerWidth = container.clientWidth - padding * 2;
-            const containerHeight = container.clientHeight - padding * 2;
-            
-            // Use the smaller dimension to maintain square grid
-            setGridPx(Math.min(containerWidth, containerHeight));
-        }
-        
-        handleResize();
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, [padding]);
+export default function CombatGrid({ canvasMonsters = [], draggingMonster = null, onPlaceMonster, onCancelDrag }: CombatGridProps) {
+    const canvasRef = React.useRef<HTMLCanvasElement | null>(null);
+    const containerRef = React.useRef<HTMLDivElement | null>(null);
+    const pointerRef = React.useRef({ x: 0, y: 0 });
+    const imageCache = React.useRef<Map<string, HTMLImageElement>>(new Map());
 
-    // Simple click handler: toggle into cell click flow (parent decides how to handle)
-    function handleCellClick(idx: number) {
-        onCellClick(idx, !grid[idx].occupied);
-    }
+    void canvasMonsters; // to avoid linter warning if unused
 
+    // make canvas fill available space (account for app bar)
     return (
-        <div
-            className="combatgrid-root"
-            style={{ height: `calc(100vh - ${APP_BAR_HEIGHT}px)` }}
-        >
-            <div
-                className="combatgrid-grid"
-                style={{
-                    width: gridPx,
-                    height: gridPx,
-                    gridTemplateColumns: `repeat(${gridSize}, 1fr)`,
-                    gridTemplateRows: `repeat(${gridSize}, 1fr)`
-                }}
-            >
-                {grid.map((cell, idx) => {
-                    let cellClass = `combatgrid-cell`;
-                    if (cell.occupied) cellClass += ' combatgrid-cell-occupied';
-
-                    return (
-                        <div
-                            key={idx}
-                            className={cellClass}
-                            onClick={() => handleCellClick(idx)}
-                        >
-                            {cell.monster?.image && (
-                                <img
-                                    src={`https://www.dnd5eapi.co${cell.monster.image}`}
-                                    alt={cell.monster.name}
-                                    className="combatgrid-monster-img"
-                                />
-                            )}
-                        </div>
-                    );
-                })}
-            </div>
+        <div className="combatgrid-root" ref={containerRef}>
+            <canvas ref={canvasRef} />
         </div>
     );
 }

@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { BACKEND_URL, DND_API_URL } from './constants';
+import { preloadImages } from './utils/imagePreloader';
 import Header from './components/Header';
 import BoardArea from './components/BoardArea';
 import { Box, Modal, Backdrop } from '@mui/material';
@@ -6,7 +8,7 @@ import SessionSignUpForm from './components/SessionSignUpForm';
 import { useSocket } from './context/SocketContext';
 import type { AlertColor } from '@mui/material/Alert';
 import SessionSnackbar from './components/SessionSnackbar';
-import type { Monster } from './components/MonsterDropdown';
+import type { Monster } from './types/monster';
 
 
 export type GridCell = {
@@ -16,6 +18,9 @@ export type GridCell = {
 
 function App() {
     const { socket } = useSocket();
+
+    // Canvas monsters: monsters placed on the canvas with normalized coords
+    const [canvasMonsters, setCanvasMonsters] = useState<Array<{ id: string; monster: Monster; x: number; y: number }>>([]);
 
     // Session states
     const [sessionJoined, setSessionJoined] = useState(false);
@@ -116,6 +121,18 @@ function App() {
         socket.on('session_created', onSessionCreated);
         socket.on('session_joined', onSessionJoined);
         socket.on('grid_updated', onGridUpdated);
+        // receive canvas monster events from other clients
+        const onCanvasMonsterAdded = (data: any) => {
+            try {
+                const { id, monster, x, y } = data;
+                if (!id || !monster) return;
+                setCanvasMonsters(prev => {
+                    if (prev.find(m => m.id === id)) return prev;
+                    return [...prev, { id, monster, x, y }];
+                });
+            } catch (e) { /* ignore malformed */ }
+        };
+        socket.on('canvas_monster_added', onCanvasMonsterAdded);
         socket.on('error', onError);
 
         return () => {
@@ -123,8 +140,47 @@ function App() {
             socket.off('session_joined', onSessionJoined);
             socket.off('grid_updated', onGridUpdated);
             socket.off('error', onError);
+            socket.off('canvas_monster_added', onCanvasMonsterAdded);
         };
     }, [socket]);
+
+    // add a canvas monster locally and emit to server
+    function addCanvasMonster(monster: Monster, x: number, y: number) {
+        const id = `${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
+        const entry = { id, monster, x, y };
+        setCanvasMonsters(prev => [...prev, entry]);
+        if (socket && sessionId) {
+            socket.emit('canvas_monster_added', { session_id: sessionId, ...entry });
+        }
+    }
+
+    // Preload monster images at app startup for snappy UI.
+    // Run once per browser session to avoid repeated network work on reloads.
+    useEffect(() => {
+        const SESSION_KEY = 'monsterImagesPreloaded';
+        try {
+            const already = sessionStorage.getItem(SESSION_KEY);
+            if (already) return; // already preloaded this session
+        } catch (e) {
+            // sessionStorage might be unavailable; fall through
+        }
+
+        async function fetchAndPreload() {
+            try {
+                const resp = await fetch(`${BACKEND_URL}/monsters`);
+                if (!resp.ok) return;
+                const data = await resp.json();
+                const urls = (data || [])
+                    .map((m: any) => m.image)
+                    .filter(Boolean)
+                    .map((p: string) => `${DND_API_URL}${p}`);
+                if (urls.length) await preloadImages(urls);
+            } catch (e) {
+                // ignore preload failures
+            }
+        }
+        fetchAndPreload();
+    }, []);
 
 
     // Move monster from one cell to another
@@ -186,28 +242,7 @@ function App() {
         }
     };
 
-    // Helper for placing monster in a cell
-    function handleMonsterSelect(monster: Monster, idx: number) {
-        setGrid(prev => {
-            const next = [...prev];
-            next[idx] = {
-                occupied: true,
-                monster,
-            };
-            return next;
-        });
-        // Emit to backend for multiplayer sync
-        if (socket && sessionId) {
-            socket.emit('update_grid', {
-                session_id: sessionId,
-                cell_index: idx,
-                value: {
-                    occupied: true,
-                    monster,
-                }
-            });
-        }
-    }
+    // Helper for placing monster in a cell (grid-based) was removed in favor of canvas placement
 
     function handleLeaveSession() {
         if (socket && sessionId) {
@@ -247,8 +282,9 @@ function App() {
             />
             <BoardArea
                 grid={gridToShow}
-                onMonsterSelect={handleMonsterSelect}
                 onRemoveMonster={handleRemoveMonster}
+                canvasMonsters={canvasMonsters}
+                onAddCanvasMonster={addCanvasMonster}
                 sessionTitle={sessionTitle}
                 numPlayers={numPlayers}
                 onImportGame={handleImportGame}
