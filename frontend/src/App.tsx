@@ -1,4 +1,3 @@
-import { moveMonster } from './utils/helpers';
 import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
 import BoardArea from './components/BoardArea';
@@ -129,28 +128,28 @@ function App() {
 
 
     // Move monster from one cell to another
-    function onMoveMonster(fromIdx: number, toIdx: number) {
-        setGrid(prev => {
-            const next = moveMonster(prev, fromIdx, toIdx);
-            // Emit to backend for multiplayer sync
-            if (socket && sessionId) {
-                socket.emit('update_grid', {
-                    session_id: sessionId,
-                    cell_index: fromIdx,
-                    value: { occupied: false }
-                });
-                socket.emit('update_grid', {
-                    session_id: sessionId,
-                    cell_index: toIdx,
-                    value: { occupied: true, monster: prev[fromIdx].monster }
-                });
-            }
-            return next;
-        });
-        setSnackbarMessage('Monster moved successfully!');
-        setSnackbarSeverity('success');
-        setSnackbarOpen(true);
-    }
+    // function onMoveMonster(fromIdx: number, toIdx: number) {
+    //     setGrid(prev => {
+    //         const next = moveMonster(prev, fromIdx, toIdx);
+    //         // Emit to backend for multiplayer sync
+    //         if (socket && sessionId) {
+    //             socket.emit('update_grid', {
+    //                 session_id: sessionId,
+    //                 cell_index: fromIdx,
+    //                 value: { occupied: false }
+    //             });
+    //             socket.emit('update_grid', {
+    //                 session_id: sessionId,
+    //                 cell_index: toIdx,
+    //                 value: { occupied: true, monster: prev[fromIdx].monster }
+    //             });
+    //         }
+    //         return next;
+    //     });
+    //     setSnackbarMessage('Monster moved successfully!');
+    //     setSnackbarSeverity('success');
+    //     setSnackbarOpen(true);
+    // }
 
     // Remove monster from a cell
     function handleRemoveMonster(idx: number) {
@@ -249,7 +248,6 @@ function App() {
             <BoardArea
                 grid={gridToShow}
                 onMonsterSelect={handleMonsterSelect}
-                onMoveMonster={onMoveMonster}
                 onRemoveMonster={handleRemoveMonster}
                 sessionTitle={sessionTitle}
                 numPlayers={numPlayers}

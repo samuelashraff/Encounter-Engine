@@ -32,8 +32,6 @@ export default function CombatGrid({ grid, onCellClick, gridSize = 16, padding =
         return () => window.removeEventListener('resize', handleResize);
     }, [padding]);
 
-    // onError is provided by parent if desired; keep prop for future use
-
     // Simple click handler: toggle into cell click flow (parent decides how to handle)
     function handleCellClick(idx: number) {
         onCellClick(idx, !grid[idx].occupied);

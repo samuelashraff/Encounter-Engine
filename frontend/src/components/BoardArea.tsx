@@ -1,4 +1,3 @@
-import React from 'react';
 import { useState } from 'react';
 import Modal from '@mui/material/Modal';
 import Button from '@mui/material/Button';
@@ -14,7 +13,6 @@ import SessionInfoPanel from './SessionInfoPanel';
 interface BoardAreaProps {
     grid: GridCell[];
     onMonsterSelect: (monster: Monster, idx: number) => void;
-    onMoveMonster: (fromIdx: number, toIdx: number) => void;
     onRemoveMonster: (idx: number) => void;
     sessionTitle: string;
     numPlayers?: number;
