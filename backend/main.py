@@ -23,8 +23,6 @@ async def shutdown_event():
     if redis:
         await redis.close()
 
-GRID_SIZE = 16
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -64,7 +62,6 @@ async def connect(session_id, environ):
 # stores the session and user in Redis, and emits a 'session_created' event to the client.
 @sio.event
 async def create_session(session_id, data=None):
-    # data may be None if client emitted without payload
     title = None
     num_players = None
     if isinstance(data, dict):
@@ -72,9 +69,8 @@ async def create_session(session_id, data=None):
         num_players = data.get("num_players")
 
     new_session_id = str(uuid.uuid4())[:8]
-    grid = [False] * (GRID_SIZE * GRID_SIZE)
-    # store grid and metadata in hash
-    mapping = {"grid": json.dumps(grid)}
+    # store grid and metadata in hash, initialize canvas_monsters to empty list
+    mapping = {"canvas_monsters": json.dumps([])}
     if title is not None:
         mapping["title"] = title
     if num_players is not None:
@@ -82,7 +78,7 @@ async def create_session(session_id, data=None):
     await redis.hset(f"session:{new_session_id}", mapping=mapping)
     await redis.sadd(f"session:{new_session_id}:users", session_id)
     await sio.enter_room(session_id, new_session_id)
-    await sio.emit('session_created', {"session_id": new_session_id, "grid": grid, "title": title, "num_players": num_players}, to=session_id)
+    await sio.emit('session_created', {"session_id": new_session_id, "title": title, "num_players": num_players}, to=session_id)
     print(f"Session created: {new_session_id} by {session_id}")
 
 # Allows a client to join an existing session. Adds the user to the session's user set in Redis,
@@ -93,30 +89,78 @@ async def join_session(session_id, data):
     if await redis.exists(f"session:{join_session_id}"):
         await redis.sadd(f"session:{join_session_id}:users", session_id)
         await sio.enter_room(session_id, join_session_id)
-        grid_json = await redis.hget(f"session:{join_session_id}", "grid")
-        grid = json.loads(grid_json)
+        canvas_monsters_json = await redis.hget(f"session:{join_session_id}", "canvas_monsters")
+        canvas_monsters = json.loads(canvas_monsters_json) if canvas_monsters_json else []
         title = await redis.hget(f"session:{join_session_id}", "title")
         num_players_str = await redis.hget(f"session:{join_session_id}", "num_players")
         num_players = int(num_players_str) if num_players_str is not None else None
-        await sio.emit('session_joined', {"session_id": join_session_id, "grid": grid, "title": title, "num_players": num_players}, to=session_id)
+        await sio.emit('session_joined', {
+            "session_id": join_session_id,
+            "canvas_monsters": canvas_monsters,
+            "title": title,
+            "num_players": num_players
+        }, to=session_id)
         print(f"User {session_id} joined session {join_session_id}")
     else:
         await sio.emit('error', {"message": "Session not found."}, to=session_id)
 
-# Updates the grid state for a session in Redis when a client makes a change.
-# Emits a 'grid_updated' event to all users in the session's room.
+# NEW: client notifies server it added a canvas monster
 @sio.event
-async def update_grid(session_id, data):
-    update_session_id = data.get("session_id")
-    cell_index = data.get("cell_index")
-    value = data.get("value")
-    if await redis.exists(f"session:{update_session_id}") and 0 <= cell_index < GRID_SIZE * GRID_SIZE:
-        grid_json = await redis.hget(f"session:{update_session_id}", "grid")
-        grid = json.loads(grid_json)
-        grid[cell_index] = value
-        await redis.hset(f"session:{update_session_id}", "grid", json.dumps(grid))
-        await sio.emit('grid_updated', {"cell_index": cell_index, "value": value}, room=update_session_id)
-        print(f"Grid updated in session {update_session_id} by {session_id}: cell {cell_index} -> {value}")
+async def canvas_monster_added(session_id, data):
+    # expected data: { session_id, id, monster, x, y }
+    session = data.get("session_id")
+    entry = {k: data.get(k) for k in ("id", "monster", "x", "y")}
+    if not session or not entry.get("id") or not entry.get("monster"):
+        await sio.emit('error', {"message": "Invalid canvas_monster_added payload"}, to=session_id)
+        return
+    if not await redis.exists(f"session:{session}"):
+        await sio.emit('error', {"message": "Session not found."}, to=session_id)
+        return
+
+    # load current list, append if not duplicate, save
+    cm_json = await redis.hget(f"session:{session}", "canvas_monsters")
+    cm_list = json.loads(cm_json) if cm_json else []
+    if any(c.get("id") == entry["id"] for c in cm_list):
+        # ignore duplicates
+        return
+    cm_list.append(entry)
+    await redis.hset(f"session:{session}", "canvas_monsters", json.dumps(cm_list))
+
+    # broadcast to room
+    await sio.emit('canvas_monster_added', entry, room=session)
+
+# NEW: client notifies server it moved a monster
+@sio.event
+async def canvas_monster_moved(session_id, data):
+    # expected data: { session_id, id, x, y }
+    session = data.get("session_id")
+    mid = data.get("id")
+    nx = data.get("x")
+    ny = data.get("y")
+    if not session or not mid:
+        await sio.emit('error', {"message": "Invalid canvas_monster_moved payload"}, to=session_id)
+        return
+    if not await redis.exists(f"session:{session}"):
+        await sio.emit('error', {"message": "Session not found."}, to=session_id)
+        return
+
+    cm_json = await redis.hget(f"session:{session}", "canvas_monsters")
+    cm_list = json.loads(cm_json) if cm_json else []
+    updated = False
+    for c in cm_list:
+        if c.get("id") == mid:
+            c["x"] = nx
+            c["y"] = ny
+            updated = True
+            break
+    if updated:
+        await redis.hset(f"session:{session}", "canvas_monsters", json.dumps(cm_list))
+        await sio.emit('canvas_monster_moved', {"id": mid, "x": nx, "y": ny}, room=session)
+        print(f"Canvas monster moved in session {session} by {session_id}: {mid} -> ({nx},{ny})")
+    else:
+        # monster not found; optionally inform the client or ignore
+        await sio.emit('error', {"message": "Monster id not found."}, to=session_id)
+
 
 # Handles client disconnection. Removes the user from all session user sets in Redis.
 # If a session has no users left, deletes the session data from Redis.

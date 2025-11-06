@@ -3,17 +3,15 @@ import { BACKEND_URL, DND_API_URL } from '../constants';
 import type { Monster as MonsterType } from '../types/monster';
 import monsterIcon from '../assets/images/MonsterToolboxIcon.png';
 
-interface Props {
-  onStartDrag: (monster: MonsterType) => void;
-}
 
-export default function MonsterToolbox({ onStartDrag }: Props) {
+
+export default function MonsterToolbox() {
   const [open, setOpen] = useState(false);
   const [monsters, setMonsters] = useState<MonsterType[]>([]);
   const ref = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    // fetch monsters once
+    // fetch monsters
     fetch(`${BACKEND_URL}/monsters`).then(async resp => {
       const data = await resp.json();
       setMonsters(data);
@@ -50,13 +48,16 @@ export default function MonsterToolbox({ onStartDrag }: Props) {
               <button
                 key={m.index}
                 className="monster-toolbox-item"
-                onClick={() => {
-                  setOpen(false);
-                  onStartDrag(m);
-                }}
               >
                 {m.image && (
-                  <img src={`${DND_API_URL}${m.image}`} alt={m.name} className="monster-toolbox-avatar" />
+                  <img src={`${DND_API_URL}${m.image}`} 
+                  alt={m.name} 
+                  className="monster-toolbox-avatar" 
+                  draggable="true"
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData('application/json', JSON.stringify(m));
+                  }}
+                  />
                 )}
                 <span className="monster-toolbox-name">{m.name}</span>
               </button>

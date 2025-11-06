@@ -34,15 +34,12 @@ export default function SessionSignUpForm({
                     color: '#fff',
                 }}
             >
-                {/* Join Session */}
                 <JoinSessionForm
                     inputSessionId={inputSessionId}
                     setInputSessionId={setInputSessionId}
                     handleJoinSession={handleJoinSession}
                 />
-                {/* Divider */}
                 <Divider orientation="vertical" flexItem sx={{ mx: 3, borderColor: '#fff' }} />
-                {/* Create Session */}
                 <CreateSessionForm onCreate={handleCreateSession} />
                 
             </Paper>

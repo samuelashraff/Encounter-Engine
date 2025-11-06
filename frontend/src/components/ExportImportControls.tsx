@@ -3,22 +3,24 @@ import { exportGame, importGame } from '../utils/helpers';
 import type { GridCell } from '../App';
 
 interface Props {
-  grid: GridCell[];
-  onImportGame?: (grid: GridCell[]) => void;
-  onImportError?: (msg: string) => void;
+  onImportGame?: (grid: GridCell[]) => void;  // TODO: Refactor to work on canvas instead of grid
+  onImportError?: (msg: string) => void;      // TODO: Refactor to work on canvas instead of grid
 }
 
-export default function ExportImportControls({ grid, onImportGame, onImportError }: Props) {
+export default function ExportImportControls({ onImportGame, onImportError }: Props) {
   const fileRef = React.useRef<HTMLInputElement | null>(null);
 
+  // TODO: Refactor to work on canvas instead of grid
   function handleExport() {
-    exportGame(grid);
+    // exportGame(grid);
   }
 
+  // TODO: Refactor to work on canvas instead of grid
   function handleImportClick() {
     fileRef.current?.click();
   }
 
+  // TODO: Refactor to work on canvas instead of grid
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;

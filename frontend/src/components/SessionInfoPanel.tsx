@@ -3,12 +3,9 @@
 interface SessionInfoPanelProps {
   sessionTitle: string;
   numPlayers?: number;
-  grid: any[];
-  onImportGame?: (grid: any[]) => void;
-  onImportError?: (msg: string) => void;
 }
 
-export default function SessionInfoPanel({ sessionTitle, numPlayers, grid, onImportGame, onImportError }: SessionInfoPanelProps) {
+export default function SessionInfoPanel({ sessionTitle, numPlayers }: SessionInfoPanelProps) {
 
   if (!(sessionTitle && numPlayers)) return null;
 
