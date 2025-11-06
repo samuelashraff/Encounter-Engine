@@ -16,6 +16,8 @@ interface CombatGridProps {
     canvasMonsters?: CanvasMonster[];
     onPlaceMonster?: (monster: MonsterType, nx: number, ny: number) => void;
     onMoveMonster?: (id: string, px: number, py: number) => void;
+    onDeleteMonster?: (id: string) => void;
+    trashBounds?: { x: number; y: number; width: number; height: number };
 }
 
 function MonsterImage({ id, src, x, y, draggable, onDragEnd }: { id: string; src: string; x: number; y: number; draggable?: boolean; onDragEnd?: (id: string, nx: number, ny: number) => void }) {
@@ -41,7 +43,7 @@ function MonsterImage({ id, src, x, y, draggable, onDragEnd }: { id: string; src
   );
 }
 
-export default function CombatGrid({ canvasMonsters = [], onPlaceMonster, onMoveMonster }: CombatGridProps) {
+export default function CombatGrid({ canvasMonsters = [], onPlaceMonster, onMoveMonster, onDeleteMonster, trashBounds }: CombatGridProps) {
 
     const stageRef = useRef<any>(null);
 
@@ -80,6 +82,33 @@ export default function CombatGrid({ canvasMonsters = [], onPlaceMonster, onMove
         };
     }, [onPlaceMonster]);
 
+    function handleDragEnd(id: string, px: number, py: number): void {
+        // convert px/py to normalized using stage dimensions
+        const stage = stageRef.current;
+        if (!stage) return;
+        const nx = px / stage.width();
+        const ny = py / stage.height();
+        onMoveMonster?.(id, nx, ny);
+
+        // 🗑️ Check if the monster was dropped in the TrashCan area
+
+        // Get absolute position in viewport
+        const stageBox = stage.container().getBoundingClientRect();
+        const absX = px + stageBox.left;
+        const absY = py + stageBox.top;
+        if (
+            trashBounds &&
+            absX >= trashBounds.x &&
+            absX <= trashBounds.x + trashBounds.width &&
+            absY >= trashBounds.y &&
+            absY <= trashBounds.y + trashBounds.height
+        ) {
+            onDeleteMonster?.(id);
+        } else {
+            onMoveMonster?.(id, nx, ny);
+        }
+    }
+
     return (
         <div className="combatgrid-root">
         <Stage ref={stageRef} width={window.innerWidth} height={window.innerHeight}>
@@ -93,12 +122,7 @@ export default function CombatGrid({ canvasMonsters = [], onPlaceMonster, onMove
                 y={cm.y * window.innerHeight}
                 draggable
                 onDragEnd={(id, px, py) => {
-                    // convert px/py to normalized using stage dimensions
-                    const stage = stageRef.current;
-                    if (!stage) return;
-                    const nx = px / stage.width();
-                    const ny = py / stage.height();
-                    onMoveMonster?.(id, nx, ny);
+                    handleDragEnd(id, px, py);
                 }}
                 />
             ))}

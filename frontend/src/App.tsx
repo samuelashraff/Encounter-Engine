@@ -88,10 +88,19 @@ function App() {
             } catch (e) { /* ignore malformed */ }
         };
 
+        const onCanvasMonsterDeleted = (data: any) => {
+            try {
+            const { id } = data;
+            if (!id) return;
+            setCanvasMonsters(prev => prev.filter(cm => cm.id !== id));
+            } catch (e) { /* ignore malformed */ }
+        };
+
         socket.on('session_created', onSessionCreated);
         socket.on('session_joined', onSessionJoined);
         socket.on('canvas_monster_added', onCanvasMonsterAdded);
         socket.on('canvas_monster_moved', onCanvasMonsterMoved);
+        socket.on('canvas_monster_deleted', onCanvasMonsterDeleted);
         socket.on('error', onError);
 
         return () => {
@@ -99,6 +108,7 @@ function App() {
             socket.off('session_joined', onSessionJoined);
             socket.off('canvas_monster_added', onCanvasMonsterAdded);
             socket.off('canvas_monster_moved', onCanvasMonsterMoved);
+            socket.on('canvas_monster_deleted', onCanvasMonsterDeleted);
             socket.off('error', onError);
         };
     }, [socket]);
@@ -117,6 +127,13 @@ function App() {
         setCanvasMonsters(prev => prev.map(cm => cm.id === id ? { ...cm, x, y } : cm));
         if (socket && sessionId) {
             socket.emit('canvas_monster_moved', { session_id: sessionId, id, x, y });
+        }
+    }
+
+    function deleteCanvasMonster(id: string) {
+        setCanvasMonsters(prev => prev.filter(cm => cm.id !== id));
+        if (socket && sessionId) {
+            socket.emit('canvas_monster_deleted', { session_id: sessionId, id });
         }
     }
 
@@ -140,27 +157,6 @@ function App() {
         }
         fetchAndPreload();
     }, []);
-
-    // TODO: Refactor to canvas-based instead of grid-based
-
-    // Remove monster from a cell
-    // function handleRemoveMonster(idx: number) {
-    //     setGrid(prev => {
-    //         const next = [...prev];
-    //         next[idx] = { occupied: false };
-    //         return next;
-    //     });
-    //     if (socket && sessionId) {
-    //         socket.emit('update_grid', {
-    //             session_id: sessionId,
-    //             cell_index: idx,
-    //             value: { occupied: false }
-    //         });
-    //     }
-    //     setSnackbarMessage('Monster removed successfully!');
-    //     setSnackbarSeverity('success');
-    //     setSnackbarOpen(true);
-    // }
 
     // Handlers for form
     function handleJoinSession(e: React.FormEvent) {
@@ -224,6 +220,7 @@ function App() {
                 onImportGame={handleImportGame}
                 onImportError={handleImportError}
                 onMoveCanvasMonster={moveCanvasMonster}
+                onDeleteCanvasMonster={deleteCanvasMonster}
             />
             <Modal
                 open={!sessionJoined}
