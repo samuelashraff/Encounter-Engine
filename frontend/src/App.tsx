@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { BACKEND_URL, DND_API_URL } from './constants';
+import { preloadImages } from './utils/imagePreloader';
 import Header from './components/Header';
 import BoardArea from './components/BoardArea';
 import { Box, Modal, Backdrop } from '@mui/material';
@@ -6,7 +8,7 @@ import SessionSignUpForm from './components/SessionSignUpForm';
 import { useSocket } from './context/SocketContext';
 import type { AlertColor } from '@mui/material/Alert';
 import SessionSnackbar from './components/SessionSnackbar';
-import type { Monster } from './components/MonsterDropdown';
+import type { Monster } from './types/monster';
 
 
 export type GridCell = {
@@ -17,11 +19,13 @@ export type GridCell = {
 function App() {
     const { socket } = useSocket();
 
+    // Canvas monsters: monsters placed on the canvas with normalized coords
+    const [canvasMonsters, setCanvasMonsters] = useState<Array<{ id: string; monster: Monster; x: number; y: number }>>([]);
+
     // Session states
     const [sessionJoined, setSessionJoined] = useState(false);
     const [sessionId, setSessionId] = useState('');
     const [inputSessionId, setInputSessionId] = useState('');
-    const [grid, setGrid] = useState<GridCell[]>([]);
     const [sessionTitle, setSessionTitle] = useState("");
     const [numPlayers, setNumPlayers] = useState<number | undefined>(undefined);
 
@@ -31,39 +35,6 @@ function App() {
     const [snackbarSeverity, setSnackbarSeverity] = useState<AlertColor>('success');
 
 
-    // Compute the grid to show: real grid if joined, empty otherwise
-    const gridToShow = sessionJoined
-        ? grid
-        : Array(16 * 16).fill(null).map(() => ({ occupied: false })); // 16x16 empty grid
-
-
-    function normalizeGridFromServer(serverGrid: any[]): GridCell[] {
-        // Ensure serverGrid is an array; otherwise return an empty grid
-        const size = 16 * 16;
-        if (!Array.isArray(serverGrid)) {
-            return Array.from({ length: size }, () => ({ occupied: false }));
-        }
-
-        return serverGrid.slice(0, size).map((cell) => {
-            if (cell === null || cell === undefined) {
-            return { occupied: false };
-            }
-            // If server sends booleans
-            if (typeof cell === 'boolean') {
-            return { occupied: cell };
-            }
-            // If server sends an object with 'occupied' already
-            if (typeof cell === 'object' && 'occupied' in cell) {
-            return cell as GridCell;
-            }
-            // Otherwise fallback
-            return { occupied: false };
-        }).concat(
-            // if serverGrid shorter than expected, pad
-            Array.from({ length: Math.max(0, size - serverGrid.length) }, () => ({ occupied: false }))
-        ).slice(0, size);
-        }
-
 
     // Websocket useEffect
     useEffect(() => {
@@ -71,7 +42,6 @@ function App() {
 
         const onSessionCreated = (data: any) => {
             setSessionId(data.session_id);
-            setGrid(normalizeGridFromServer(data.grid));
             setSessionTitle(data.title ?? "");
             setNumPlayers(data.num_players ?? undefined);
             setSessionJoined(true);
@@ -81,10 +51,13 @@ function App() {
         };
         const onSessionJoined = (data: any) => {
             setSessionId(data.session_id);
-            setGrid(normalizeGridFromServer(data.grid));
             setSessionTitle(data.title ?? "");
             setNumPlayers(data.num_players ?? undefined);
             setSessionJoined(true);
+            // set canvas monsters if provided by server (new)
+            if (Array.isArray(data.canvas_monsters)) {
+            setCanvasMonsters(data.canvas_monsters);
+            }
             setSnackbarMessage('Joined session successfully!');
             setSnackbarSeverity('success');
             setSnackbarOpen(true);
@@ -94,81 +67,100 @@ function App() {
             setSnackbarSeverity('error');
             setSnackbarOpen(true);
         };
-        const onGridUpdated = (data: any) => {
-            setGrid(prev => {
-                const next = prev && prev.length ? [...prev] : normalizeGridFromServer([]);
-                const idx = Number(data.cell_index);
-                if (Number.isNaN(idx) || idx < 0 || idx >= next.length) return next;
-
-                const value = data.value;
-                if (typeof value === 'boolean') {
-                next[idx] = { occupied: value };
-                } else if (value && typeof value === 'object' && 'occupied' in value) {
-                next[idx] = value;
-                } else {
-                // fallback: mark as empty
-                next[idx] = { occupied: false };
-                }
-                return next;
+        
+        // receive canvas monster events from other clients
+        const onCanvasMonsterAdded = (data: any) => {
+            try {
+            const { id, monster, x, y } = data;
+            if (!id || !monster) return;
+            setCanvasMonsters(prev => {
+                if (prev.find(m => m.id === id)) return prev;
+                return [...prev, { id, monster, x, y }];
             });
+            } catch (e) { /* ignore malformed */ }
+        };
+
+        const onCanvasMonsterMoved = (data: any) => {
+            try {
+            const { id, x, y } = data;
+            if (!id) return;
+            setCanvasMonsters(prev => prev.map(cm => cm.id === id ? { ...cm, x, y } : cm));
+            } catch (e) { /* ignore malformed */ }
         };
 
         socket.on('session_created', onSessionCreated);
         socket.on('session_joined', onSessionJoined);
-        socket.on('grid_updated', onGridUpdated);
+        socket.on('canvas_monster_added', onCanvasMonsterAdded);
+        socket.on('canvas_monster_moved', onCanvasMonsterMoved);
         socket.on('error', onError);
 
         return () => {
             socket.off('session_created', onSessionCreated);
             socket.off('session_joined', onSessionJoined);
-            socket.off('grid_updated', onGridUpdated);
+            socket.off('canvas_monster_added', onCanvasMonsterAdded);
+            socket.off('canvas_monster_moved', onCanvasMonsterMoved);
             socket.off('error', onError);
         };
     }, [socket]);
 
+    // add a canvas monster locally and emit to server
+    function addCanvasMonster(monster: Monster, x: number, y: number) {
+        const id = `${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
+        const entry = { id, monster, x, y };
+        setCanvasMonsters(prev => [...prev, entry]);
+        if (socket && sessionId) {
+            socket.emit('canvas_monster_added', { session_id: sessionId, ...entry });
+        }
+    }
 
-    // Move monster from one cell to another
-    // function onMoveMonster(fromIdx: number, toIdx: number) {
+    function moveCanvasMonster(id: string, x: number, y: number) {
+        setCanvasMonsters(prev => prev.map(cm => cm.id === id ? { ...cm, x, y } : cm));
+        if (socket && sessionId) {
+            socket.emit('canvas_monster_moved', { session_id: sessionId, id, x, y });
+        }
+    }
+
+    // Preload monster images at app startup for snappy UI.
+    // Run once per browser session to avoid repeated network work on reloads.
+    useEffect(() => {
+
+        async function fetchAndPreload() {
+            try {
+                const resp = await fetch(`${BACKEND_URL}/monsters`);
+                if (!resp.ok) return;
+                const data = await resp.json();
+                const urls = (data || [])
+                    .map((m: any) => m.image)
+                    .filter(Boolean)
+                    .map((p: string) => `${DND_API_URL}${p}`);
+                if (urls.length) await preloadImages(urls);
+            } catch (e) {
+                // ignore preload failures
+            }
+        }
+        fetchAndPreload();
+    }, []);
+
+    // TODO: Refactor to canvas-based instead of grid-based
+
+    // Remove monster from a cell
+    // function handleRemoveMonster(idx: number) {
     //     setGrid(prev => {
-    //         const next = moveMonster(prev, fromIdx, toIdx);
-    //         // Emit to backend for multiplayer sync
-    //         if (socket && sessionId) {
-    //             socket.emit('update_grid', {
-    //                 session_id: sessionId,
-    //                 cell_index: fromIdx,
-    //                 value: { occupied: false }
-    //             });
-    //             socket.emit('update_grid', {
-    //                 session_id: sessionId,
-    //                 cell_index: toIdx,
-    //                 value: { occupied: true, monster: prev[fromIdx].monster }
-    //             });
-    //         }
+    //         const next = [...prev];
+    //         next[idx] = { occupied: false };
     //         return next;
     //     });
-    //     setSnackbarMessage('Monster moved successfully!');
+    //     if (socket && sessionId) {
+    //         socket.emit('update_grid', {
+    //             session_id: sessionId,
+    //             cell_index: idx,
+    //             value: { occupied: false }
+    //         });
+    //     }
+    //     setSnackbarMessage('Monster removed successfully!');
     //     setSnackbarSeverity('success');
     //     setSnackbarOpen(true);
     // }
-
-    // Remove monster from a cell
-    function handleRemoveMonster(idx: number) {
-        setGrid(prev => {
-            const next = [...prev];
-            next[idx] = { occupied: false };
-            return next;
-        });
-        if (socket && sessionId) {
-            socket.emit('update_grid', {
-                session_id: sessionId,
-                cell_index: idx,
-                value: { occupied: false }
-            });
-        }
-        setSnackbarMessage('Monster removed successfully!');
-        setSnackbarSeverity('success');
-        setSnackbarOpen(true);
-    }
 
     // Handlers for form
     function handleJoinSession(e: React.FormEvent) {
@@ -186,28 +178,7 @@ function App() {
         }
     };
 
-    // Helper for placing monster in a cell
-    function handleMonsterSelect(monster: Monster, idx: number) {
-        setGrid(prev => {
-            const next = [...prev];
-            next[idx] = {
-                occupied: true,
-                monster,
-            };
-            return next;
-        });
-        // Emit to backend for multiplayer sync
-        if (socket && sessionId) {
-            socket.emit('update_grid', {
-                session_id: sessionId,
-                cell_index: idx,
-                value: {
-                    occupied: true,
-                    monster,
-                }
-            });
-        }
-    }
+    // Helper for placing monster in a cell (grid-based) was removed in favor of canvas placement
 
     function handleLeaveSession() {
         if (socket && sessionId) {
@@ -218,21 +189,21 @@ function App() {
                 setSessionId('');
                 setSessionTitle('');
                 setNumPlayers(undefined);
-                setGrid([]);
                 setSnackbarMessage('You have left the session.');
                 setSnackbarSeverity('success');
                 setSnackbarOpen(true);
             });
         }
-}
+    }
 
+    // TODO: Refactor to canvas-based instead of grid-based
     function handleImportGame(importedGrid: GridCell[]) {
-        setGrid(importedGrid);
         setSnackbarMessage('Game imported successfully!');
         setSnackbarSeverity('success');
         setSnackbarOpen(true);
     }
 
+    // TODO: Refactor to canvas-based instead of grid-based
     function handleImportError(msg: string) {
         setSnackbarMessage(msg);
         setSnackbarSeverity('error');
@@ -246,13 +217,13 @@ function App() {
                 showLeaveButton={sessionJoined}
             />
             <BoardArea
-                grid={gridToShow}
-                onMonsterSelect={handleMonsterSelect}
-                onRemoveMonster={handleRemoveMonster}
+                canvasMonsters={canvasMonsters}
+                onAddCanvasMonster={addCanvasMonster}
                 sessionTitle={sessionTitle}
                 numPlayers={numPlayers}
                 onImportGame={handleImportGame}
                 onImportError={handleImportError}
+                onMoveCanvasMonster={moveCanvasMonster}
             />
             <Modal
                 open={!sessionJoined}

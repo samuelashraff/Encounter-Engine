@@ -1,14 +1,4 @@
-/**
- * Moves a monster from one cell to another in the grid.
- * Updates the grid array and returns the new grid.
- */
-export function moveMonster(grid: GridCell[], fromIdx: number, toIdx: number): GridCell[] {
-    const next = [...grid];
-    const monster = next[fromIdx].monster;
-    next[fromIdx] = { occupied: false };
-    next[toIdx] = { occupied: true, monster };
-    return next;
-}
+import type { GridCell } from "../App";
 
 // Helper function to import grid/session from JSON file
 export function importGame(
@@ -31,8 +21,6 @@ export function importGame(
     };
     reader.readAsText(file);
 }
-
-import type { GridCell } from "../App";
 
 // Helper function to export grid/session as JSON file
 export function exportGame(grid: GridCell[]) {

@@ -1,77 +1,109 @@
-import { useEffect, useState } from 'react';
-import { APP_BAR_HEIGHT } from '../constants';
+import React, { useEffect, useRef } from 'react';
 import '../styles/CombatGrid.css';
-import type { GridCell } from '../App';
+import type { Monster as MonsterType } from '../types/monster';
+import { Stage, Layer, Image } from 'react-konva';
+import useImage from 'use-image';
+import { DND_API_URL } from '../constants';
 
-interface CombatGridProps {
-    grid: GridCell[];
-    onCellClick: (idx: number, value: boolean) => void;
-    gridSize?: number;
-    padding?: number;
-    onError?: (msg: string) => void;
+interface CanvasMonster {
+    id: string;
+    monster: MonsterType;
+    x: number;
+    y: number;
 }
 
-export default function CombatGrid({ grid, onCellClick, gridSize = 16, padding = 32 }: CombatGridProps) {
-    const [gridPx, setGridPx] = useState(0);
+interface CombatGridProps {
+    canvasMonsters?: CanvasMonster[];
+    onPlaceMonster?: (monster: MonsterType, nx: number, ny: number) => void;
+    onMoveMonster?: (id: string, px: number, py: number) => void;
+}
+
+function MonsterImage({ id, src, x, y, draggable, onDragEnd }: { id: string; src: string; x: number; y: number; draggable?: boolean; onDragEnd?: (id: string, nx: number, ny: number) => void }) {
+  const [image] = useImage(src);
+
+  return (
+    <Image
+      image={image}
+      x={x}
+      y={y}
+      width={64}
+      height={64}
+      draggable={draggable}
+      onDragEnd={(e) => {
+        if (!onDragEnd) return;
+        const node = e.target;
+        const pos = node.position(); // { x, y } in stage pixels
+        // we will convert to normalized coords in parent because stageRef is here;
+        // but we can call onDragEnd with pixel coords and let parent normalize.
+        onDragEnd(id, pos.x, pos.y);
+      }}
+    />
+  );
+}
+
+export default function CombatGrid({ canvasMonsters = [], onPlaceMonster, onMoveMonster }: CombatGridProps) {
+
+    const stageRef = useRef<any>(null);
 
     useEffect(() => {
-        function handleResize() {
-            // Get the container's dimensions
-            const container = document.querySelector('.boardarea-right-main-col');
-            if (!container) return;
-            
-            const containerWidth = container.clientWidth - padding * 2;
-            const containerHeight = container.clientHeight - padding * 2;
-            
-            // Use the smaller dimension to maintain square grid
-            setGridPx(Math.min(containerWidth, containerHeight));
-        }
-        
-        handleResize();
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, [padding]);
+        const container = stageRef.current?.container();
+        if (!container) return;
 
-    // Simple click handler: toggle into cell click flow (parent decides how to handle)
-    function handleCellClick(idx: number) {
-        onCellClick(idx, !grid[idx].occupied);
-    }
+        function handleDragOver(e: DragEvent) {
+            e.preventDefault(); // allows drop
+        }
+
+        function handleDrop(e: DragEvent) {
+            e.preventDefault();
+            const json = e.dataTransfer?.getData('application/json');
+            if (!json || !onPlaceMonster) return;
+
+            const monster = JSON.parse(json) as MonsterType;
+            const stage = stageRef.current;
+            stage.setPointersPositions(e);
+            const pointerPosition = stage.getPointerPosition();
+            console.log('Dropped at', pointerPosition);
+
+            // normalize x/y to 0..1 range
+            const nx = pointerPosition.x / stage.width();
+            const ny = pointerPosition.y / stage.height();
+
+            onPlaceMonster(monster, nx, ny);
+        }
+
+        container.addEventListener('dragover', handleDragOver);
+        container.addEventListener('drop', handleDrop);
+
+        return () => {
+            container.removeEventListener('dragover', handleDragOver);
+            container.removeEventListener('drop', handleDrop);
+        };
+    }, [onPlaceMonster]);
 
     return (
-        <div
-            className="combatgrid-root"
-            style={{ height: `calc(100vh - ${APP_BAR_HEIGHT}px)` }}
-        >
-            <div
-                className="combatgrid-grid"
-                style={{
-                    width: gridPx,
-                    height: gridPx,
-                    gridTemplateColumns: `repeat(${gridSize}, 1fr)`,
-                    gridTemplateRows: `repeat(${gridSize}, 1fr)`
+        <div className="combatgrid-root">
+        <Stage ref={stageRef} width={window.innerWidth} height={window.innerHeight}>
+            <Layer>
+            {canvasMonsters.map((cm) => (
+                <MonsterImage
+                key={cm.id}
+                id={cm.id}
+                src={`${DND_API_URL}${cm.monster.image}`}
+                x={cm.x * window.innerWidth}
+                y={cm.y * window.innerHeight}
+                draggable
+                onDragEnd={(id, px, py) => {
+                    // convert px/py to normalized using stage dimensions
+                    const stage = stageRef.current;
+                    if (!stage) return;
+                    const nx = px / stage.width();
+                    const ny = py / stage.height();
+                    onMoveMonster?.(id, nx, ny);
                 }}
-            >
-                {grid.map((cell, idx) => {
-                    let cellClass = `combatgrid-cell`;
-                    if (cell.occupied) cellClass += ' combatgrid-cell-occupied';
-
-                    return (
-                        <div
-                            key={idx}
-                            className={cellClass}
-                            onClick={() => handleCellClick(idx)}
-                        >
-                            {cell.monster?.image && (
-                                <img
-                                    src={`https://www.dnd5eapi.co${cell.monster.image}`}
-                                    alt={cell.monster.name}
-                                    className="combatgrid-monster-img"
-                                />
-                            )}
-                        </div>
-                    );
-                })}
-            </div>
+                />
+            ))}
+            </Layer>
+        </Stage>
         </div>
     );
 }
