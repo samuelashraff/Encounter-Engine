@@ -85,6 +85,7 @@ export default function CombatGrid({ canvasMonsters = [], onPlaceMonster, onMove
     function handleDragEnd(id: string, px: number, py: number): void {
         // convert px/py to normalized using stage dimensions
         const stage = stageRef.current;
+        console.log("Stage currrent:", stage);
         if (!stage) return;
         const nx = px / stage.width();
         const ny = py / stage.height();

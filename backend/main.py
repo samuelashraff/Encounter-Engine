@@ -156,7 +156,6 @@ async def canvas_monster_moved(session_id, data):
     if updated:
         await redis.hset(f"session:{session}", "canvas_monsters", json.dumps(cm_list))
         await sio.emit('canvas_monster_moved', {"id": mid, "x": nx, "y": ny}, room=session)
-        print(f"Canvas monster moved in session {session} by {session_id}: {mid} -> ({nx},{ny})")
     else:
         # monster not found; optionally inform the client or ignore
         await sio.emit('error', {"message": "Monster id not found."}, to=session_id)
