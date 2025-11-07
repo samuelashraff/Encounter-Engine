@@ -7,8 +7,8 @@ services:
     depends_on: 
       - redis
     build:
-      context: ./backend
-    working_dir: /app
+      context: ./backend  # Mount backend source folder so code changes reflect immediately.
+    working_dir: /app   # Set in Dockerfile as well, but not harmful to repeat here.
     volumes:
       - ./backend:/app
     ports:
@@ -21,9 +21,9 @@ services:
     depends_on:
       - backend
     build:
-      context: ./frontend
+      context: ./frontend   # Mount frontend source folder so code changes reflect immediately.
       dockerfile: Dockerfile
-    working_dir: /app
+    working_dir: /app   # Set in Dockerfile as well, but not harmful to repeat here.
     volumes:
       - ./frontend:/app
       - /app/node_modules

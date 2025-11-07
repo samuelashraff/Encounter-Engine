@@ -156,10 +156,28 @@ async def canvas_monster_moved(session_id, data):
     if updated:
         await redis.hset(f"session:{session}", "canvas_monsters", json.dumps(cm_list))
         await sio.emit('canvas_monster_moved', {"id": mid, "x": nx, "y": ny}, room=session)
-        print(f"Canvas monster moved in session {session} by {session_id}: {mid} -> ({nx},{ny})")
     else:
         # monster not found; optionally inform the client or ignore
         await sio.emit('error', {"message": "Monster id not found."}, to=session_id)
+
+@sio.event
+async def canvas_monster_deleted(session_id, data):
+    session = data.get("session_id")
+    mid = data.get("id")
+    if not session or not mid:
+        await sio.emit('error', {"message": "Invalid canvas_monster_deleted payload"}, to=session_id)
+        return
+    if not await redis.exists(f"session:{session}"):
+        await sio.emit('error', {"message": "Session not found."}, to=session_id)
+        return
+
+    cm_json = await redis.hget(f"session:{session}", "canvas_monsters")
+    cm_list = json.loads(cm_json) if cm_json else []
+    cm_list = [c for c in cm_list if c.get("id") != mid]
+    await redis.hset(f"session:{session}", "canvas_monsters", json.dumps(cm_list))
+
+    await sio.emit('canvas_monster_deleted', {"id": mid}, room=session)
+    print(f"Canvas monster deleted in session {session}: {mid}")
 
 
 # Handles client disconnection. Removes the user from all session user sets in Redis.
