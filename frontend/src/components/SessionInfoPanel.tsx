@@ -7,7 +7,7 @@ interface SessionInfoPanelProps {
 
 export default function SessionInfoPanel({ sessionTitle, numPlayers }: SessionInfoPanelProps) {
 
-  if (!(sessionTitle && numPlayers)) return null;
+  if (!sessionTitle) return null;
 
   return (
     <div className="boardarea-session-info-outer" role="region" aria-label="Session information">
@@ -17,7 +17,7 @@ export default function SessionInfoPanel({ sessionTitle, numPlayers }: SessionIn
       </div>
       <div className="boardarea-session-info-area">
         <span className="boardarea-session-label">Players:</span>
-        <span className="boardarea-session-title">{numPlayers}</span>
+        <span className="boardarea-session-title">{numPlayers ?? 0}</span>
       </div>
     </div>
   );

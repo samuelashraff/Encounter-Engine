@@ -92,8 +92,7 @@ async def join_session(session_id, data):
         canvas_monsters_json = await redis.hget(f"session:{join_session_id}", "canvas_monsters")
         canvas_monsters = json.loads(canvas_monsters_json) if canvas_monsters_json else []
         title = await redis.hget(f"session:{join_session_id}", "title")
-        num_players_str = await redis.hget(f"session:{join_session_id}", "num_players")
-        num_players = int(num_players_str) if num_players_str is not None else None
+        num_players = await redis.scard(f"session:{join_session_id}:users")
         await sio.emit('session_joined', {
             "session_id": join_session_id,
             "canvas_monsters": canvas_monsters,
@@ -101,10 +100,15 @@ async def join_session(session_id, data):
             "num_players": num_players
         }, to=session_id)
         print(f"User {session_id} joined session {join_session_id}")
+
+        # Broadcast updated player count to all other clients in the room
+        await sio.emit('update_num_players', {
+            "num_players": num_players
+        }, room=join_session_id, skip_sid=session_id)
     else:
         await sio.emit('error', {"message": "Session not found."}, to=session_id)
 
-# NEW: client notifies server it added a canvas monster
+# Client notifies server it added a canvas monster
 @sio.event
 async def canvas_monster_added(session_id, data):
     # expected data: { session_id, id, monster, x, y }
@@ -129,7 +133,7 @@ async def canvas_monster_added(session_id, data):
     # broadcast to room
     await sio.emit('canvas_monster_added', entry, room=session)
 
-# NEW: client notifies server it moved a monster
+# Client notifies server it moved a monster
 @sio.event
 async def canvas_monster_moved(session_id, data):
     # expected data: { session_id, id, x, y }
@@ -208,9 +212,18 @@ async def leave_session(session_id, data):
         # Remove user from session
         await redis.srem(f"session:{leave_session_id}:users", session_id)
         await sio.leave_room(session_id, leave_session_id)
-        # Check if session is empty
-        if await redis.scard(f"session:{leave_session_id}:users") == 0:
+
+        # Check remaining players
+        remaining_players = await redis.scard(f"session:{leave_session_id}:users")
+        if remaining_players > 0:
+            # Broadcast updated player count to remaining clients
+            await sio.emit('update_num_players', {
+                "num_players": remaining_players
+            }, room=leave_session_id)
+        else:
+            # Delete session if no players remain
             await redis.delete(f"session:{leave_session_id}")
+        
         await sio.emit('leave_confirmed', to=session_id)
 
 if __name__ == "__main__":
