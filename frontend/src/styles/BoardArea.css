@@ -154,9 +154,22 @@
   letter-spacing: 0.06em;
   margin-bottom: 0.5rem;
 }
+
+.monster-toolbox-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  font-size: 1rem;
+  font-weight: bold;
+  color: #333;
+  text-align: center;
+}
+
 .monster-toolbox-list {
   overflow-y: auto;
   display: flex;
+  height: 100%;
   flex-direction: column;
   gap: 0.4rem;
   padding-right: 0.25rem;

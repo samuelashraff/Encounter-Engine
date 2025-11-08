@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { BACKEND_URL, DND_API_URL } from './constants';
-import { preloadImages } from './utils/imagePreloader';
 import Header from './components/Header';
 import BoardArea from './components/BoardArea';
 import { Box, Modal, Backdrop } from '@mui/material';
@@ -136,27 +134,6 @@ function App() {
             socket.emit('canvas_monster_deleted', { session_id: sessionId, id });
         }
     }
-
-    // Preload monster images at app startup for snappy UI.
-    // Run once per browser session to avoid repeated network work on reloads.
-    useEffect(() => {
-
-        async function fetchAndPreload() {
-            try {
-                const resp = await fetch(`${BACKEND_URL}/monsters`);
-                if (!resp.ok) return;
-                const data = await resp.json();
-                const urls = (data || [])
-                    .map((m: any) => m.image)
-                    .filter(Boolean)
-                    .map((p: string) => `${DND_API_URL}${p}`);
-                if (urls.length) await preloadImages(urls);
-            } catch (e) {
-                // ignore preload failures
-            }
-        }
-        fetchAndPreload();
-    }, []);
 
     // Handlers for form
     function handleJoinSession(e: React.FormEvent) {
