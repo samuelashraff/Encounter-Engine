@@ -94,11 +94,16 @@ function App() {
             } catch (e) { /* ignore malformed */ }
         };
 
+        const onUpdateNumPlayers = (data: any) => {
+            setNumPlayers(data.num_players);
+        };
+
         socket.on('session_created', onSessionCreated);
         socket.on('session_joined', onSessionJoined);
         socket.on('canvas_monster_added', onCanvasMonsterAdded);
         socket.on('canvas_monster_moved', onCanvasMonsterMoved);
         socket.on('canvas_monster_deleted', onCanvasMonsterDeleted);
+        socket.on('update_num_players', onUpdateNumPlayers);
         socket.on('error', onError);
 
         return () => {
@@ -106,7 +111,8 @@ function App() {
             socket.off('session_joined', onSessionJoined);
             socket.off('canvas_monster_added', onCanvasMonsterAdded);
             socket.off('canvas_monster_moved', onCanvasMonsterMoved);
-            socket.on('canvas_monster_deleted', onCanvasMonsterDeleted);
+            socket.off('canvas_monster_deleted', onCanvasMonsterDeleted);
+            socket.off('update_num_players', onUpdateNumPlayers);
             socket.off('error', onError);
         };
     }, [socket]);
