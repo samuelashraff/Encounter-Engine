@@ -34,9 +34,9 @@ export default function CreateSessionForm({ onCreate }: CreateSessionFormProps) 
           sx={{
             mb: 2,
             '& .MuiOutlinedInput-root': {
-              '& fieldset': { borderColor: '#fff' },
-              '&:hover fieldset': { borderColor: '#fff' },
-              '&.Mui-focused fieldset': { borderColor: '#fff' },
+              '& fieldset': { borderColor: '#bb1e1eff' },
+              '&:hover fieldset': { borderColor: '#bb1e1eff' },
+              '&.Mui-focused fieldset': { borderColor: '#bb1e1eff' },
             },
           }}
         />
@@ -59,9 +59,9 @@ export default function CreateSessionForm({ onCreate }: CreateSessionFormProps) 
           sx={{
             mb: 2,
             '& .MuiOutlinedInput-root': {
-              '& fieldset': { borderColor: '#fff' },
-              '&:hover fieldset': { borderColor: '#fff' },
-              '&.Mui-focused fieldset': { borderColor: '#fff' },
+              '& fieldset': { borderColor: '#bb1e1eff' },
+              '&:hover fieldset': { borderColor: '#bb1e1eff' },
+              '&.Mui-focused fieldset': { borderColor: '#bb1e1efff' },
             },
           }}
         />

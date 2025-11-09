@@ -1,6 +1,7 @@
 import type { GridCell } from "../App";
 
 // Helper function to import grid/session from JSON file
+// TODO: Refactor to canvas-based CombatGrid
 export function importGame(
     file: File,
     onImport: (grid: GridCell[]) => void,
@@ -23,6 +24,7 @@ export function importGame(
 }
 
 // Helper function to export grid/session as JSON file
+// TODO: Refactor to canvas-based CombatGrid
 export function exportGame(grid: GridCell[]) {
     const dataToExport = { grid };
     const json = JSON.stringify(dataToExport, null, 2);

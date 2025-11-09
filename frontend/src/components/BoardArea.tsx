@@ -13,7 +13,7 @@ interface BoardAreaProps {
     onAddCanvasMonster?: (monster: MonsterType, x: number, y: number) => void;
     sessionTitle: string;
     numPlayers?: number;
-    onImportGame?: (grid: GridCell[]) => void;
+    onImportGame?: (grid: GridCell[]) => void;  // TODO: Refactor props
     onImportError?: (msg: string) => void;
     onMoveCanvasMonster?: (id: string, x: number, y: number) => void;
     onDeleteCanvasMonster?: (id: string) => void;
