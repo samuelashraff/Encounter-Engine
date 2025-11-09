@@ -29,9 +29,9 @@ export default function JoinSessionForm({
           sx={{
             mb: 2,
             '& .MuiOutlinedInput-root': {
-              '& fieldset': { borderColor: '#fff' },
-              '&:hover fieldset': { borderColor: '#fff' },
-              '&.Mui-focused fieldset': { borderColor: '#fff' },
+              '& fieldset': { borderColor: '#bb1e1eff' },
+              '&:hover fieldset': { borderColor: '#bb1e1eff' },
+              '&.Mui-focused fieldset': { borderColor: '#bb1e1eff' },
             },
           }}
         />

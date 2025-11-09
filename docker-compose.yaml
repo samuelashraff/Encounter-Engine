@@ -15,7 +15,7 @@ services:
       - "8000:8000"
     command: uvicorn main:socket_app --host 0.0.0.0 --port 8000 --reload
     environment:
-      - PYTHONUNBUFFERED=1
+      - PYTHONUNBUFFERED=1  # logs appear in real-time in Docker logs
 
   frontend:
     depends_on:

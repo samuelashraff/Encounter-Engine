@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { BACKEND_URL, DND_API_URL } from './constants';
-import { preloadImages } from './utils/imagePreloader';
 import Header from './components/Header';
 import BoardArea from './components/BoardArea';
 import { Box, Modal, Backdrop } from '@mui/material';
@@ -36,6 +34,12 @@ function App() {
 
 
 
+    function updateSnackbar(message: string, severity: AlertColor, snackBarOpen: boolean): void {
+        setSnackbarMessage(message);
+        setSnackbarSeverity(severity);
+        setSnackbarOpen(snackBarOpen);
+    }
+
     // Websocket useEffect
     useEffect(() => {
         if (!socket) return;
@@ -45,27 +49,22 @@ function App() {
             setSessionTitle(data.title ?? "");
             setNumPlayers(data.num_players ?? undefined);
             setSessionJoined(true);
-            setSnackbarMessage('Session created successfully!');
-            setSnackbarSeverity('success');
-            setSnackbarOpen(true);
+            updateSnackbar('Session created successfully!', 'success', true);
         };
         const onSessionJoined = (data: any) => {
             setSessionId(data.session_id);
             setSessionTitle(data.title ?? "");
             setNumPlayers(data.num_players ?? undefined);
             setSessionJoined(true);
-            // set canvas monsters if provided by server (new)
+            // set canvas monsters if provided by server
             if (Array.isArray(data.canvas_monsters)) {
             setCanvasMonsters(data.canvas_monsters);
             }
-            setSnackbarMessage('Joined session successfully!');
-            setSnackbarSeverity('success');
-            setSnackbarOpen(true);
+            updateSnackbar('Joined session successfully!', 'success', true);
         };
         const onError = (data: any) => {
-            setSnackbarMessage(data.message || 'An error occurred');
-            setSnackbarSeverity('error');
-            setSnackbarOpen(true);
+            const message = data.message || 'An error occured';
+            updateSnackbar(message, 'error', true);
         };
         
         // receive canvas monster events from other clients
@@ -93,6 +92,7 @@ function App() {
             const { id } = data;
             if (!id) return;
             setCanvasMonsters(prev => prev.filter(cm => cm.id !== id));
+            updateSnackbar('Monster deleted successfully!', 'success', true);
             } catch (e) { /* ignore malformed */ }
         };
 
@@ -143,27 +143,6 @@ function App() {
         }
     }
 
-    // Preload monster images at app startup for snappy UI.
-    // Run once per browser session to avoid repeated network work on reloads.
-    useEffect(() => {
-
-        async function fetchAndPreload() {
-            try {
-                const resp = await fetch(`${BACKEND_URL}/monsters`);
-                if (!resp.ok) return;
-                const data = await resp.json();
-                const urls = (data || [])
-                    .map((m: any) => m.image)
-                    .filter(Boolean)
-                    .map((p: string) => `${DND_API_URL}${p}`);
-                if (urls.length) await preloadImages(urls);
-            } catch (e) {
-                // ignore preload failures
-            }
-        }
-        fetchAndPreload();
-    }, []);
-
     // Handlers for form
     function handleJoinSession(e: React.FormEvent) {
         e.preventDefault();
@@ -180,8 +159,6 @@ function App() {
         }
     };
 
-    // Helper for placing monster in a cell (grid-based) was removed in favor of canvas placement
-
     function handleLeaveSession() {
         if (socket && sessionId) {
             socket.emit('leave_session', { session_id: sessionId });
@@ -191,25 +168,19 @@ function App() {
                 setSessionId('');
                 setSessionTitle('');
                 setNumPlayers(undefined);
-                setSnackbarMessage('You have left the session.');
-                setSnackbarSeverity('success');
-                setSnackbarOpen(true);
+                updateSnackbar('You have left the session.', 'success', true);
             });
         }
     }
 
     // TODO: Refactor to canvas-based instead of grid-based
     function handleImportGame(importedGrid: GridCell[]) {
-        setSnackbarMessage('Game imported successfully!');
-        setSnackbarSeverity('success');
-        setSnackbarOpen(true);
+        updateSnackbar('Game imported successfully!', 'success', true);
     }
 
     // TODO: Refactor to canvas-based instead of grid-based
     function handleImportError(msg: string) {
-        setSnackbarMessage(msg);
-        setSnackbarSeverity('error');
-        setSnackbarOpen(true);
+        updateSnackbar(msg, 'success', true);
     }
 
     return (

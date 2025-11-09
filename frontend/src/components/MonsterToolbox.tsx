@@ -8,6 +8,7 @@ import monsterIcon from '../assets/images/MonsterToolboxIcon.png';
 export default function MonsterToolbox() {
   const [open, setOpen] = useState(false);
   const [monsters, setMonsters] = useState<MonsterType[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const ref = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -17,6 +18,28 @@ export default function MonsterToolbox() {
       setMonsters(data);
     }).catch(() => setMonsters([]));
   }, []);
+
+  // Preload images once monsters are set
+  useEffect(() => {
+    if (monsters.length === 0) return;
+    setLoading(true);
+    const imagePromises = monsters
+      .filter((m) => !!m.image)
+      .map(
+        (m) =>
+          new Promise<void>((resolve) => {
+            const img = new Image();
+            img.src = `${DND_API_URL}${m.image}`;
+            img.onload = () => resolve();
+            img.onerror = () => resolve(); // still resolve even if image fails
+          })
+      );
+
+    Promise.all(imagePromises).then(() => {
+      console.log('All monster images loaded!');
+      setLoading(false);
+    });
+  }, [monsters]);
 
   // close when clicking outside
   useEffect(() => {
@@ -43,25 +66,26 @@ export default function MonsterToolbox() {
         <div className="monster-toolbox-popup" role="dialog" aria-label="Monsters list">
           <div className="monster-toolbox-header">Monsters</div>
           <div className="monster-toolbox-list">
-            {monsters.length === 0 && <div className="monster-toolbox-loading">Loading...</div>}
-            {monsters.map(m => (
-              <button
-                key={m.index}
-                className="monster-toolbox-item"
-              >
-                {m.image && (
-                  <img src={`${DND_API_URL}${m.image}`} 
-                  alt={m.name} 
-                  className="monster-toolbox-avatar" 
-                  draggable="true"
-                  onDragStart={(e) => {
-                    e.dataTransfer.setData('application/json', JSON.stringify(m));
-                  }}
-                  />
-                )}
-                <span className="monster-toolbox-name">{m.name}</span>
-              </button>
-            ))}
+            {loading ? (
+              <div className="monster-toolbox-loading">Loading...</div>
+            ) : (
+              monsters.map((m) => (
+                <button key={m.index} className="monster-toolbox-item">
+                  {m.image && (
+                    <img
+                      src={`${DND_API_URL}${m.image}`}
+                      alt={m.name}
+                      className="monster-toolbox-avatar"
+                      draggable="true"
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData('application/json', JSON.stringify(m));
+                      }}
+                    />
+                  )}
+                  <span className="monster-toolbox-name">{m.name}</span>
+                </button>
+              ))
+            )}
           </div>
         </div>
       )}
