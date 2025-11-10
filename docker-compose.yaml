@@ -7,10 +7,10 @@ services:
     depends_on: 
       - redis
     build:
-      context: ./backend  # Mount backend source folder so code changes reflect immediately.
+      context: ./backend
     working_dir: /app   # Set in Dockerfile as well, but not harmful to repeat here.
     volumes:
-      - ./backend:/app
+      - ./backend:/app  # Mount backend source folder so code changes reflect immediately.
     ports:
       - "8000:8000"
     command: uvicorn main:socket_app --host 0.0.0.0 --port 8000 --reload
@@ -21,12 +21,12 @@ services:
     depends_on:
       - backend
     build:
-      context: ./frontend   # Mount frontend source folder so code changes reflect immediately.
+      context: ./frontend
       dockerfile: Dockerfile
     working_dir: /app   # Set in Dockerfile as well, but not harmful to repeat here.
     volumes:
-      - ./frontend:/app
-      - /app/node_modules
+      - ./frontend:/app   # Mount frontend source folder so code changes reflect immediately.
+      - /app/node_modules # Prevent node_modules inside container from being overwritten by host machine.
     ports:
       - "5173:5173"
     environment:
