@@ -187,21 +187,31 @@ async def canvas_monster_deleted(session_id, data):
 # Handles client disconnection. Removes the user from all session user sets in Redis.
 # If a session has no users left, deletes the session data from Redis.
 @sio.event
-async def disconnect(session_id):
-    print(f"Client disconnected: {session_id}")
+async def disconnect(sid):
+    print(f"Client disconnected: {sid}")
     try:
-        # Get all sessions this user is part of
+        # Iterate through all session user sets
         async for key in redis.scan_iter("session:*:users"):
-            # Remove user from session
-            await redis.srem(key, session_id)
-            # Check if session is empty
-            if await redis.scard(key) == 0:
+            if await redis.sismember(key, sid):
+                await redis.srem(key, sid)
+
                 # Extract session_id from key (e.g., "session:abc123:users" -> "abc123")
-                session_id_to_delete = key.split(":")[1]
-                # Delete session data and user set
-                await redis.delete(f"session:{session_id_to_delete}")
-                await redis.delete(key)
-                print(f"Cleaned up empty session: {session_id_to_delete}")
+                session_id = key.split(":")[1]
+
+                # Count remaining players
+                remaining_players = await redis.scard(key)
+
+                if remaining_players > 0:
+                    # Broadcast updated count to remaining players
+                    await sio.emit('update_num_players', {
+                        "num_players": remaining_players
+                    }, room=session_id)
+                else:
+                    # Delete the session entirely if no players remain
+                    await redis.delete(f"session:{session_id}")
+                    await redis.delete(key)
+                    print(f"Cleaned up empty session: {session_id}")
+
     except Exception as e:
         print(f"Error in disconnect handler: {e}")
 

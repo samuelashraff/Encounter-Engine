@@ -40,31 +40,6 @@ export default function CreateSessionForm({ onCreate }: CreateSessionFormProps) 
             },
           }}
         />
-        <TextField
-          label="Number of Players"
-          type="number"
-          variant="outlined"
-          fullWidth
-          required
-          value={numPlayers}
-          onChange={e => setNumPlayers(Number(e.target.value))}
-          slotProps={{
-            input: {
-                inputProps: { min: 1, max: 20 },
-                style: { color: '#fff' }
-            },
-            inputLabel: { style: { color: '#fff' } }
-            }
-        }
-          sx={{
-            mb: 2,
-            '& .MuiOutlinedInput-root': {
-              '& fieldset': { borderColor: '#bb1e1eff' },
-              '&:hover fieldset': { borderColor: '#bb1e1eff' },
-              '&.Mui-focused fieldset': { borderColor: '#bb1e1efff' },
-            },
-          }}
-        />
         <Button
           type="submit"
           variant="contained"
