@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import CombatGrid from './CombatGrid';
 import ExportImportControls from './ExportImportControls';
-import type { GridCell } from '../App';
+import type { GridCell } from '../pages/SessionPage';
 import '../styles/BoardArea.css';
 import SessionInfoPanel from './SessionInfoPanel';
 import MonsterToolbox from './MonsterToolbox';
@@ -11,6 +11,7 @@ import TrashcanBox from './TrashcanBox';
 interface BoardAreaProps {
     canvasMonsters?: Array<{ id: string; monster: MonsterType; x: number; y: number }>;
     onAddCanvasMonster?: (monster: MonsterType, x: number, y: number) => void;
+    sessionId?: string;
     sessionTitle: string;
     numPlayers?: number;
     onImportGame?: (grid: GridCell[]) => void;  // TODO: Refactor props
@@ -19,7 +20,7 @@ interface BoardAreaProps {
     onDeleteCanvasMonster?: (id: string) => void;
 }
 
-export default function BoardArea({ canvasMonsters, onAddCanvasMonster, sessionTitle, numPlayers, onImportGame, onImportError, onMoveCanvasMonster, onDeleteCanvasMonster }: BoardAreaProps) {
+export default function BoardArea({ canvasMonsters, onAddCanvasMonster, sessionId, sessionTitle, numPlayers, onImportGame, onImportError, onMoveCanvasMonster, onDeleteCanvasMonster }: BoardAreaProps) {
 
     const trashRef = useRef<HTMLDivElement>(null);
     const [trashBounds, setTrashBounds] = useState<{ x: number; y: number; width: number; height: number }>();
@@ -44,6 +45,7 @@ export default function BoardArea({ canvasMonsters, onAddCanvasMonster, sessionT
             <ExportImportControls onImportGame={onImportGame} onImportError={onImportError} />
             <div className="sessioninfo-top">
                 <SessionInfoPanel
+                    sessionId={sessionId}
                     sessionTitle={sessionTitle}
                     numPlayers={numPlayers}
                 />
