@@ -7,9 +7,11 @@ import type { AlertColor } from '@mui/material/Alert';
 import SessionSnackbar from '../components/SessionSnackbar';
 import type { Monster } from '../types/monster';
 
-export type GridCell = {
-    occupied: boolean;
-    monster?: Monster;
+interface MonsterCanvasInfo {
+    id: string;
+    monster: Monster;
+    x: number;
+    y: number;
 }
 
 function SessionPage() {
@@ -18,7 +20,7 @@ function SessionPage() {
     const { socket } = useSocket();
 
     // Canvas monsters: monsters placed on the canvas with normalized coords
-    const [canvasMonsters, setCanvasMonsters] = useState<Array<{ id: string; monster: Monster; x: number; y: number }>>([]);
+    const [canvasMonsters, setCanvasMonsters] = useState<Array<MonsterCanvasInfo>>([]);
 
     // Session states
     const [sessionTitle, setSessionTitle] = useState("");
@@ -145,17 +147,6 @@ function SessionPage() {
         }
 
     }
-
-    // TODO: Refactor to canvas-based instead of grid-based
-    function handleImportGame(importedGrid: GridCell[]) {
-        updateSnackbar('Game imported successfully!', 'success', true);
-    }
-
-    // TODO: Refactor to canvas-based instead of grid-based
-    function handleImportError(msg: string) {
-        updateSnackbar(msg, 'success', true);
-    }
-
     return (
         <div className='app-root'>
             <Header 
@@ -168,8 +159,6 @@ function SessionPage() {
                 sessionId={sessionId}
                 sessionTitle={sessionTitle}
                 numPlayers={numPlayers}
-                onImportGame={handleImportGame}
-                onImportError={handleImportError}
                 onMoveCanvasMonster={moveCanvasMonster}
                 onDeleteCanvasMonster={deleteCanvasMonster}
             />

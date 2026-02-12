@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import CombatGrid from './CombatGrid';
-import ExportImportControls from './ExportImportControls';
-import type { GridCell } from '../pages/SessionPage';
 import '../styles/BoardArea.css';
 import SessionInfoPanel from './SessionInfoPanel';
 import MonsterToolbox from './MonsterToolbox';
@@ -14,13 +12,11 @@ interface BoardAreaProps {
     sessionId?: string;
     sessionTitle: string;
     numPlayers?: number;
-    onImportGame?: (grid: GridCell[]) => void;  // TODO: Refactor props
-    onImportError?: (msg: string) => void;
     onMoveCanvasMonster?: (id: string, x: number, y: number) => void;
     onDeleteCanvasMonster?: (id: string) => void;
 }
 
-export default function BoardArea({ canvasMonsters, onAddCanvasMonster, sessionId, sessionTitle, numPlayers, onImportGame, onImportError, onMoveCanvasMonster, onDeleteCanvasMonster }: BoardAreaProps) {
+export default function BoardArea({ canvasMonsters, onAddCanvasMonster, sessionId, sessionTitle, numPlayers, onMoveCanvasMonster, onDeleteCanvasMonster }: BoardAreaProps) {
 
     const trashRef = useRef<HTMLDivElement>(null);
     const [trashBounds, setTrashBounds] = useState<{ x: number; y: number; width: number; height: number }>();
@@ -42,7 +38,6 @@ export default function BoardArea({ canvasMonsters, onAddCanvasMonster, sessionI
 
     return (
         <div className="boardarea-root"> 
-            <ExportImportControls onImportGame={onImportGame} onImportError={onImportError} />
             <div className="sessioninfo-top">
                 <SessionInfoPanel
                     sessionId={sessionId}

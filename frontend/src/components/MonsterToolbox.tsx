@@ -3,7 +3,25 @@ import { BACKEND_URL, DND_API_URL } from '../constants';
 import type { Monster as MonsterType } from '../types/monster';
 import monsterIcon from '../assets/images/MonsterToolboxIcon.png';
 
+interface MonsterImageProps {
+  monster: MonsterType
+}
 
+function Monster({monster}: MonsterImageProps) {
+  return (
+    <>
+      <img
+        src={`${DND_API_URL}${monster.image}`}
+        alt={monster.name}
+        className="monster-toolbox-avatar"
+        draggable="true"
+        onDragStart={(e) => {
+          e.dataTransfer.setData('application/json', JSON.stringify(monster));
+        }}
+      />
+    </>
+  )
+}
 
 export default function MonsterToolbox() {
   const [open, setOpen] = useState(false);
@@ -72,15 +90,7 @@ export default function MonsterToolbox() {
               monsters.map((m) => (
                 <button key={m.index} className="monster-toolbox-item">
                   {m.image && (
-                    <img
-                      src={`${DND_API_URL}${m.image}`}
-                      alt={m.name}
-                      className="monster-toolbox-avatar"
-                      draggable="true"
-                      onDragStart={(e) => {
-                        e.dataTransfer.setData('application/json', JSON.stringify(m));
-                      }}
-                    />
+                    <Monster monster={m} />
                   )}
                   <span className="monster-toolbox-name">{m.name}</span>
                 </button>

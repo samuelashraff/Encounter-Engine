@@ -9,11 +9,10 @@ interface CreateSessionFormProps {
 
 export default function CreateSessionForm({ onCreate }: CreateSessionFormProps) {
   const [sessionTitle, setSessionTitle] = useState('');
-  const [numPlayers, setNumPlayers] = useState(1);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onCreate(sessionTitle, numPlayers);
+    onCreate(sessionTitle, 1);
   };
 
   return (

@@ -76,6 +76,7 @@ export default function CombatGrid({ canvasMonsters = [], onPlaceMonster, onMove
         container.addEventListener('dragover', handleDragOver);
         container.addEventListener('drop', handleDrop);
 
+        // Remove listeners to not accumulate multiple listeners over time
         return () => {
             container.removeEventListener('dragover', handleDragOver);
             container.removeEventListener('drop', handleDrop);

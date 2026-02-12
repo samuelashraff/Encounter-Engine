@@ -5,16 +5,20 @@ from fastapi.middleware.cors import CORSMiddleware
 import httpx
 from redis import asyncio as aioredis
 from handlers import register_handlers
+from os import getenv
+from dotenv import load_dotenv
 
 sio = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins='*')
 app = FastAPI()
 socket_app = socketio.ASGIApp(sio, other_asgi_app=app)
 redis = None
 
+load_dotenv()
+
 @app.on_event("startup")
 async def startup_event():
     global redis
-    redis = await aioredis.from_url("redis://redis:6379", decode_responses=True)
+    redis = await aioredis.from_url(getenv("REDIS_URL", "redis://redis:6379"), decode_responses=True)
     register_handlers(sio, redis)
 
 @app.on_event("shutdown")
