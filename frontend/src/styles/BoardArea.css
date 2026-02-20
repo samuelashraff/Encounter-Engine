@@ -76,6 +76,42 @@
   border-radius: 0.35rem;
 }
 
+.boardarea-session-pawns {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  align-items: flex-start;
+}
+.boardarea-pawns-heading {
+  font-size: 0.78rem;
+  color: #cbd5e1;
+  font-weight: 700;
+  margin-bottom: 0.15rem;
+}
+.boardarea-pawns-list {
+  display: flex;
+  gap: 0.45rem;
+  align-items: center;
+  max-width: 240px;
+  overflow-x: auto;
+}
+.player-pawn { display: inline-flex; }
+.player-pawn-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.35);
+  border: 2px solid rgba(255,255,255,0.08);
+}
+.player-pawn-initials {
+  color: white;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
 @media (max-width: 640px) {
   .sessioninfo-top {
     top: 0.75rem;
