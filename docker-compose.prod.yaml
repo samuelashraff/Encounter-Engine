@@ -1,0 +1,48 @@
+services:
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - frontend
+      - backend
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    # Don't expose Redis ports unless absolutely necessary
+    # ports:
+    #   - "6379:6379"
+
+  backend:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    depends_on:
+      - redis
+    expose:
+      - "8000"
+    env_file:
+      - /etc/app.env
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: uvicorn main:socket_app --host 0.0.0.0 --port 8000
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+      args:
+        # Build-time argument for Vite build
+        VITE_SOCKET_URL: ${VITE_SOCKET_URL}
+    restart: unless-stopped
+    depends_on:
+      - backend
+    expose:
+      - "5173"
+    env_file:
+      - /etc/app.env
+    
