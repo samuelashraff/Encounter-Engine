@@ -42,7 +42,7 @@ services:
     depends_on:
       - backend
     expose:
-      - "5173"
+      - "80"
     env_file:
       - /etc/app.env
     

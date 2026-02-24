@@ -1,34 +1,23 @@
 services:
-
-  nginx:
-    image: nginx:alpine
-    restart: unless-stopped
-    ports:
-      - "80:80"
-    depends_on:
-      - frontend
-      - backend
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-
   redis:
     image: redis:7
     ports:
       - "6379:6379"
 
   backend:
-    depends_on: 
+    depends_on:
       - redis
     build:
       context: ./backend
-    working_dir: /app   # Set in Dockerfile as well, but not harmful to repeat here.
+    working_dir: /app
     volumes:
-      - ./backend:/app  # Mount backend source folder so code changes reflect immediately.
-    expose:
-      - "8000"
+      - ./backend:/app
+    ports:
+      - "8000:8000"
     command: uvicorn main:socket_app --host 0.0.0.0 --port 8000 --reload
     environment:
-      - PYTHONUNBUFFERED=1  # logs appear in real-time in Docker logs
+      - PYTHONUNBUFFERED=1
+      - REDIS_URL=redis://redis:6379
 
   frontend:
     depends_on:
@@ -36,11 +25,13 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    working_dir: /app   # Set in Dockerfile as well, but not harmful to repeat here.
+    working_dir: /app
     volumes:
-      - ./frontend:/app   # Mount frontend source folder so code changes reflect immediately.
-      - /app/node_modules # Prevent node_modules inside container from being overwritten by host machine.
-    expose:
-      - "5173"
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
     environment:
       - NODE_ENV=development
+      - VITE_SOCKET_URL=http://localhost:8000
+      - VITE_BACKEND_URL=http://localhost:8000
