@@ -9,9 +9,4 @@
 .vscode
 
 # .env files
-/backend/.env
-/frontend/.env
-
-# AWS Deployment md
-
-Deployment.md
+app.env

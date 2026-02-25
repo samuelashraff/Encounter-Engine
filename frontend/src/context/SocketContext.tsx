@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL ?? window.location.origin;
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || window.location.origin;
 
 type SocketContextType = {
   socket: Socket | null;

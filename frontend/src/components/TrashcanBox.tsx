@@ -1,8 +1,8 @@
-import React, { forwardRef } from 'react';
+import { forwardRef } from 'react';
 import trashcanIcon from '../assets/images/TrashcanIcon.svg';
 import '../styles/TrashcanBox.css';
 
-const TrashcanBox = forwardRef<HTMLDivElement>((props, ref) => {
+const TrashcanBox = forwardRef<HTMLDivElement>((_, ref) => {
     return (
         <div className="trashcan-box" title="Drop monsters here to delete" ref={ref}>
             <div className="trashcan-icon-wrapper">

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import '../styles/CombatGrid.css';
 import type { Monster as MonsterType } from '../types/monster';
 import { Stage, Layer, Image } from 'react-konva';

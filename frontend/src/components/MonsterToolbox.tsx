@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { BASE_URL, DND_API_URL } from '../constants';
+import { DND_API_URL } from '../constants';
 import type { Monster as MonsterType } from '../types/monster';
 import monsterIcon from '../assets/images/MonsterToolboxIcon.png';
 
@@ -31,7 +31,7 @@ export default function MonsterToolbox() {
 
   useEffect(() => {
     // fetch monsters
-    fetch(`${BASE_URL}/monsters`).then(async resp => {
+    fetch(`/monsters`).then(async resp => {
       const data = await resp.json();
       setMonsters(data);
     }).catch(() => setMonsters([]));

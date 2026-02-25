@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Modal, Backdrop } from '@mui/material';
 import Header from '../components/Header';
@@ -24,6 +24,12 @@ function HomePage() {
 
     function handleJoinSession(e: React.FormEvent) {
         e.preventDefault();
+
+        if (!inputSessionId.trim()) {
+            updateSnackbar('Please enter a session ID', 'warning', true);
+            return;
+        }
+
         if (socket && inputSessionId.trim()) {
             socket.emit('join_session', { session_id: inputSessionId.trim() });
             
@@ -48,6 +54,20 @@ function HomePage() {
             socket.emit('create_session', { title, num_players: numPlayers });
         }
     }
+
+    useEffect(() => {
+        if (!socket) return;
+
+        const onError = (data: { message?: string }) => {
+            updateSnackbar(data?.message ?? 'Something went wrong', 'error', true);
+        };
+
+        socket.on('error', onError);
+
+        return () => {
+            socket.off('error', onError);
+        };
+    }, [socket]);
 
     return (
         <div className='app-root'>
